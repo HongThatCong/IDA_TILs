@@ -2359,6 +2359,42 @@ NTAPI
 LdrFlushAlternateResourceModules(
     VOID
     );
+    
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+LdrDllRedirectionCallback(
+    _In_ ULONG Flags,
+    _In_ PCWSTR DllName,
+    _In_opt_ PCWSTR DllPath,
+    _Inout_opt_ PULONG DllCharacteristics,
+    _In_ PVOID CallbackData,
+    _Out_ PCWSTR *EffectiveDllPath
+    );
+
+// rev
+NTSYSAPI
+VOID 
+NTAPI 
+LdrSetDllManifestProber(
+    _In_ PVOID Routine
+    );
+
+#if (PHNT_VERSION >= PHNT_THRESHOLD)
+NTSYSAPI BOOLEAN LdrpChildNtdll; // DATA export
+#endif
+
+// rev
+NTSYSAPI
+VOID 
+NTAPI 
+LdrpResGetMappingSize(
+    _In_ PVOID BaseAddress, 
+    _Out_ PSIZE_T Size, 
+    _In_ ULONG Flags, 
+    _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
+    );
 
 #endif  // (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -3812,7 +3848,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryAuxiliaryCounterFrequency(
-    _Out_ PLARGE_INTEGER AuxiliaryCounterFrequency
+    _Out_ PULONG64 AuxiliaryCounterFrequency
     );
 
 // rev
@@ -3821,9 +3857,9 @@ NTSTATUS
 NTAPI
 NtConvertBetweenAuxiliaryCounterAndPerformanceCounter(
     _In_ BOOLEAN ConvertAuxiliaryToPerformanceCounter,
-    _In_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
-    _Out_ PLARGE_INTEGER ConvertedValue,
-    _Out_opt_ PLARGE_INTEGER ConversionError
+    _In_ PULONG64 PerformanceOrAuxiliaryCounterValue,
+    _Out_ PULONG64 ConvertedValue,
+    _Out_opt_ PULONG64 ConversionError
     );
 #endif
 
@@ -3902,7 +3938,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemContextSwitchInformation, // q: SYSTEM_CONTEXT_SWITCH_INFORMATION
     SystemRegistryQuotaInformation, // q: SYSTEM_REGISTRY_QUOTA_INFORMATION; s (requires SeIncreaseQuotaPrivilege)
     SystemExtendServiceTableInformation, // s (requires SeLoadDriverPrivilege) // loads win32k only
-    SystemPrioritySeperation, // s (requires SeTcbPrivilege)
+    SystemPrioritySeparation, // s (requires SeTcbPrivilege)
     SystemVerifierAddDriverInformation, // s (requires SeDebugPrivilege) // 40
     SystemVerifierRemoveDriverInformation, // s (requires SeDebugPrivilege)
     SystemProcessorIdleInformation, // q: SYSTEM_PROCESSOR_IDLE_INFORMATION (EX in: USHORT ProcessorGroup)
@@ -3935,8 +3971,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemHotpatchInformation, // q; s: SYSTEM_HOTPATCH_CODE_INFORMATION
     SystemObjectSecurityMode, // q: ULONG // 70
     SystemWatchdogTimerHandler, // s: SYSTEM_WATCHDOG_HANDLER_INFORMATION // (kernel-mode only)
-    SystemWatchdogTimerInformation, // q: SYSTEM_WATCHDOG_TIMER_INFORMATION // (kernel-mode only)
-    SystemLogicalProcessorInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION (EX in: USHORT ProcessorGroup)
+    SystemWatchdogTimerInformation, // q: SYSTEM_WATCHDOG_TIMER_INFORMATION // NtQuerySystemInformationEx // (kernel-mode only)
+    SystemLogicalProcessorInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx
     SystemWow64SharedInformationObsolete, // not implemented
     SystemRegisterFirmwareTableInformationHandler, // s: SYSTEM_FIRMWARE_TABLE_HANDLER // (kernel-mode only)
     SystemFirmwareTableInformation, // SYSTEM_FIRMWARE_TABLE_INFORMATION
@@ -3945,8 +3981,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemSuperfetchInformation, // q; s: SUPERFETCH_INFORMATION // PfQuerySuperfetchInformation
     SystemMemoryListInformation, // q: SYSTEM_MEMORY_LIST_INFORMATION; s: SYSTEM_MEMORY_LIST_COMMAND (requires SeProfileSingleProcessPrivilege) // 80
     SystemFileCacheInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (same as SystemFileCacheInformation)
-    SystemThreadPriorityClientIdInformation, // s: SYSTEM_THREAD_CID_PRIORITY_INFORMATION (requires SeIncreaseBasePriorityPrivilege)
-    SystemProcessorIdleCycleTimeInformation, // q: SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION[] (EX in: USHORT ProcessorGroup)
+    SystemThreadPriorityClientIdInformation, // s: SYSTEM_THREAD_CID_PRIORITY_INFORMATION (requires SeIncreaseBasePriorityPrivilege) // NtQuerySystemInformationEx
+    SystemProcessorIdleCycleTimeInformation, // q: SYSTEM_PROCESSOR_IDLE_CYCLE_TIME_INFORMATION[] (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx
     SystemVerifierCancellationInformation, // SYSTEM_VERIFIER_CANCELLATION_INFORMATION // name:wow64:whNT32QuerySystemVerifierCancellationInformation
     SystemProcessorPowerInformationEx, // not implemented
     SystemRefTraceInformation, // q; s: SYSTEM_REF_TRACE_INFORMATION // ObQueryRefTraceInformation
@@ -3963,15 +3999,15 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVerifierFaultsInformation, // s: SYSTEM_VERIFIER_FAULTS_INFORMATION (requires SeDebugPrivilege)
     SystemSystemPartitionInformation, // q: SYSTEM_SYSTEM_PARTITION_INFORMATION
     SystemSystemDiskInformation, // q: SYSTEM_SYSTEM_DISK_INFORMATION
-    SystemProcessorPerformanceDistribution, // q: SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION (EX in: USHORT ProcessorGroup) // 100
+    SystemProcessorPerformanceDistribution, // q: SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx // 100
     SystemNumaProximityNodeInformation, // q; s: SYSTEM_NUMA_PROXIMITY_MAP
     SystemDynamicTimeZoneInformation, // q; s: RTL_DYNAMIC_TIME_ZONE_INFORMATION (requires SeTimeZonePrivilege)
     SystemCodeIntegrityInformation, // q: SYSTEM_CODEINTEGRITY_INFORMATION // SeCodeIntegrityQueryInformation
     SystemProcessorMicrocodeUpdateInformation, // s: SYSTEM_PROCESSOR_MICROCODE_UPDATE_INFORMATION
     SystemProcessorBrandString, // q: CHAR[] // HaliQuerySystemInformation -> HalpGetProcessorBrandString, info class 23
     SystemVirtualAddressInformation, // q: SYSTEM_VA_LIST_INFORMATION[]; s: SYSTEM_VA_LIST_INFORMATION[] (requires SeIncreaseQuotaPrivilege) // MmQuerySystemVaInformation
-    SystemLogicalProcessorAndGroupInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX (EX in: LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType) // since WIN7 // KeQueryLogicalProcessorRelationship
-    SystemProcessorCycleTimeInformation, // q: SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION[] (EX in: USHORT ProcessorGroup)
+    SystemLogicalProcessorAndGroupInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX (EX in: LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType) // since WIN7 // NtQuerySystemInformationEx // KeQueryLogicalProcessorRelationship
+    SystemProcessorCycleTimeInformation, // q: SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION[] (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx
     SystemStoreInformation, // q; s: SYSTEM_STORE_INFORMATION (requires SeProfileSingleProcessPrivilege) // SmQueryStoreInformation
     SystemRegistryAppendString, // s: SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS // 110
     SystemAitSamplingValue, // s: ULONG (requires SeProfileSingleProcessPrivilege)
@@ -3984,7 +4020,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVerifierCountersInformation, // q: SYSTEM_VERIFIER_COUNTERS_INFORMATION
     SystemPagedPoolInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypePagedPool)
     SystemSystemPtesInformationEx, // q: SYSTEM_FILECACHE_INFORMATION; s (requires SeIncreaseQuotaPrivilege) (info for WorkingSetTypeSystemPtes) // 120
-    SystemNodeDistanceInformation, // q: USHORT[4*NumaNodes] // (EX in: USHORT NodeNumber)
+    SystemNodeDistanceInformation, // q: USHORT[4*NumaNodes] // (EX in: USHORT NodeNumber) // NtQuerySystemInformationEx
     SystemAcpiAuditInformation, // q: SYSTEM_ACPI_AUDIT_INFORMATION // HaliQuerySystemInformation -> HalpAuditQueryResults, info class 26
     SystemBasicPerformanceInformation, // q: SYSTEM_BASIC_PERFORMANCE_INFORMATION // name:wow64:whNtQuerySystemInformation_SystemBasicPerformanceInformation
     SystemQueryPerformanceCounterInformation, // q: SYSTEM_QUERY_PERFORMANCE_COUNTER_INFORMATION // since WIN7 SP1
@@ -4004,7 +4040,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemMemoryTopologyInformation, // q: SYSTEM_MEMORY_TOPOLOGY_INFORMATION
     SystemMemoryChannelInformation, // q: SYSTEM_MEMORY_CHANNEL_INFORMATION
     SystemBootLogoInformation, // q: SYSTEM_BOOT_LOGO_INFORMATION // 140
-    SystemProcessorPerformanceInformationEx, // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX // (EX in: USHORT ProcessorGroup) // since WINBLUE
+    SystemProcessorPerformanceInformationEx, // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX // (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx // since WINBLUE
     SystemCriticalProcessErrorLogInformation, // CRITICAL_PROCESS_EXCEPTION_DATA
     SystemSecureBootPolicyInformation, // q: SYSTEM_SECUREBOOT_POLICY_INFORMATION
     SystemPageFileInformationEx, // q: SYSTEM_PAGEFILE_INFORMATION_EX
@@ -4023,7 +4059,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemManufacturingInformation, // q: SYSTEM_MANUFACTURING_INFORMATION // since THRESHOLD
     SystemEnergyEstimationConfigInformation, // q: SYSTEM_ENERGY_ESTIMATION_CONFIG_INFORMATION
     SystemHypervisorDetailInformation, // q: SYSTEM_HYPERVISOR_DETAIL_INFORMATION
-    SystemProcessorCycleStatsInformation, // q: SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION (EX in: USHORT ProcessorGroup) // 160
+    SystemProcessorCycleStatsInformation, // q: SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx // 160
     SystemVmGenerationCountInformation,
     SystemTrustedPlatformModuleInformation, // q: SYSTEM_TPM_INFORMATION
     SystemKernelDebuggerFlags, // SYSTEM_KERNEL_DEBUGGER_FLAGS
@@ -4042,7 +4078,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemCpuSetTagInformation, // q: SYSTEM_CPU_SET_TAG_INFORMATION
     SystemWin32WerStartCallout,
     SystemSecureKernelProfileInformation, // q: SYSTEM_SECURE_KERNEL_HYPERGUARD_PROFILE_INFORMATION
-    SystemCodeIntegrityPlatformManifestInformation, // q: SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION // since REDSTONE
+    SystemCodeIntegrityPlatformManifestInformation, // q: SYSTEM_SECUREBOOT_PLATFORM_MANIFEST_INFORMATION // NtQuerySystemInformationEx // since REDSTONE
     SystemInterruptSteeringInformation, // q: in: SYSTEM_INTERRUPT_STEERING_INFORMATION_INPUT, out: SYSTEM_INTERRUPT_STEERING_INFORMATION_OUTPUT // NtQuerySystemInformationEx // 180
     SystemSupportedProcessorArchitectures, // p: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx
     SystemMemoryUsageInformation, // q: SYSTEM_MEMORY_USAGE_INFORMATION
@@ -4052,12 +4088,12 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemKernelDebuggingAllowed, // s: ULONG
     SystemActivityModerationExeState, // SYSTEM_ACTIVITY_MODERATION_EXE_STATE
     SystemActivityModerationUserSettings, // SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
-    SystemCodeIntegrityPoliciesFullInformation,
+    SystemCodeIntegrityPoliciesFullInformation, // NtQuerySystemInformationEx
     SystemCodeIntegrityUnlockInformation, // SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION // 190
     SystemIntegrityQuotaInformation,
     SystemFlushInformation, // q: SYSTEM_FLUSH_INFORMATION
     SystemProcessorIdleMaskInformation, // q: ULONG_PTR[ActiveGroupCount] // since REDSTONE3
-    SystemSecureDumpEncryptionInformation,
+    SystemSecureDumpEncryptionInformation, // NtQuerySystemInformationEx
     SystemWriteConstraintInformation, // SYSTEM_WRITE_CONSTRAINT_INFORMATION
     SystemKernelVaShadowInformation, // SYSTEM_KERNEL_VA_SHADOW_INFORMATION
     SystemHypervisorSharedPageInformation, // SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION // since REDSTONE4
@@ -4072,7 +4108,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemLeapSecondInformation, // SYSTEM_LEAP_SECOND_INFORMATION
     SystemFlags2Information, // q: SYSTEM_FLAGS_INFORMATION
     SystemSecurityModelInformation, // SYSTEM_SECURITY_MODEL_INFORMATION // since 19H1
-    SystemCodeIntegritySyntheticCacheInformation,
+    SystemCodeIntegritySyntheticCacheInformation, // NtQuerySystemInformationEx
     SystemFeatureConfigurationInformation, // q: in: SYSTEM_FEATURE_CONFIGURATION_QUERY, out: SYSTEM_FEATURE_CONFIGURATION_INFORMATION; s: SYSTEM_FEATURE_CONFIGURATION_UPDATE // NtQuerySystemInformationEx // since 20H1 // 210
     SystemFeatureConfigurationSectionInformation, // q: in: SYSTEM_FEATURE_CONFIGURATION_SECTIONS_REQUEST, out: SYSTEM_FEATURE_CONFIGURATION_SECTIONS_INFORMATION // NtQuerySystemInformationEx
     SystemFeatureUsageSubscriptionInformation, // q: SYSTEM_FEATURE_USAGE_SUBSCRIPTION_DETAILS; s: SYSTEM_FEATURE_USAGE_SUBSCRIPTION_UPDATE
@@ -4086,7 +4122,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemDifRemovePluginVerificationOnDriver, // SYSTEM_DIF_PLUGIN_DRIVER_INFORMATION // 220
     SystemShadowStackInformation, // SYSTEM_SHADOW_STACK_INFORMATION
     SystemBuildVersionInformation, // q: in: ULONG (LayerNumber), out: SYSTEM_BUILD_VERSION_INFORMATION // NtQuerySystemInformationEx // 222
-    SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege)
+    SystemPoolLimitInformation, // SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege) // NtQuerySystemInformationEx
     SystemCodeIntegrityAddDynamicStore,
     SystemCodeIntegrityClearDynamicStores,
     SystemDifPoolTrackingInformation,
@@ -4094,15 +4130,15 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemDpcWatchdogInformation, // q; s: SYSTEM_DPC_WATCHDOG_CONFIGURATION_INFORMATION
     SystemDpcWatchdogInformation2, // q; s: SYSTEM_DPC_WATCHDOG_CONFIGURATION_INFORMATION_V2
     SystemSupportedProcessorArchitectures2, // q: in opt: HANDLE, out: SYSTEM_SUPPORTED_PROCESSOR_ARCHITECTURES_INFORMATION[] // NtQuerySystemInformationEx // 230
-    SystemSingleProcessorRelationshipInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // (EX in: PROCESSOR_NUMBER Processor)
+    SystemSingleProcessorRelationshipInformation, // q: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX // (EX in: PROCESSOR_NUMBER Processor) // NtQuerySystemInformationEx
     SystemXfgCheckFailureInformation, // q: SYSTEM_XFG_FAILURE_INFORMATION
     SystemIommuStateInformation, // SYSTEM_IOMMU_STATE_INFORMATION // since 22H1
     SystemHypervisorMinrootInformation, // SYSTEM_HYPERVISOR_MINROOT_INFORMATION
     SystemHypervisorBootPagesInformation, // SYSTEM_HYPERVISOR_BOOT_PAGES_INFORMATION
     SystemPointerAuthInformation, // SYSTEM_POINTER_AUTH_INFORMATION
-    SystemSecureKernelDebuggerInformation,
+    SystemSecureKernelDebuggerInformation, // NtQuerySystemInformationEx
     SystemOriginalImageFeatureInformation, // q: in: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, out: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT // NtQuerySystemInformationEx
-    SystemMemoryNumaInformation, // SYSTEM_MEMORY_NUMA_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_INFORMATION_OUTPUT
+    SystemMemoryNumaInformation, // SYSTEM_MEMORY_NUMA_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     SystemMemoryNumaPerformanceInformation, // SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUTSYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT // since 24H2 // 240
     SystemCodeIntegritySignedPoliciesFullInformation,
     SystemSecureCoreInformation, // SystemSecureSecretsInformation
@@ -11950,6 +11986,19 @@ NtReadVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64ReadVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONGLONG BufferSize,
+    _Out_opt_ PULONGLONG NumberOfBytesRead,
+    _In_ ULONG Flags
+    );
+
 #if (PHNT_VERSION >= PHNT_WIN11)
 // rev
 NTSYSCALLAPI
@@ -11976,6 +12025,18 @@ NtWriteVirtualMemory(
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64WriteVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONGLONG BufferSize,
+    _Out_opt_ PULONGLONG NumberOfBytesWritten
+    );
+
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -11997,6 +12058,19 @@ NtQueryVirtualMemory(
     _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
     _In_ SIZE_T MemoryInformationLength,
     _Out_opt_ PSIZE_T ReturnLength
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64QueryVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONGLONG MemoryInformationLength,
+    _Out_opt_ PULONGLONG ReturnLength
     );
 
 typedef struct _IO_STATUS_BLOCK* PIO_STATUS_BLOCK;
@@ -12442,7 +12516,7 @@ NTSTATUS
 NTAPI
 NtAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PSIZE_T NumberOfPages,
+    _Inout_ PULONG_PTR NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
     _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
@@ -12454,7 +12528,7 @@ NTSTATUS
 NTAPI
 NtFreeUserPhysicalPages(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PSIZE_T NumberOfPages,
+    _Inout_ PULONG_PTR NumberOfPages,
     _In_reads_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
@@ -12473,7 +12547,7 @@ NtGetWriteWatch(
     _In_ PVOID BaseAddress,
     _In_ SIZE_T RegionSize,
     _Out_writes_(*EntriesInUserAddressArray) PVOID *UserAddressArray,
-    _Inout_ PSIZE_T EntriesInUserAddressArray,
+    _Inout_ PULONG_PTR EntriesInUserAddressArray,
     _Out_ PULONG Granularity
     );
 
@@ -14610,7 +14684,7 @@ typedef enum _THREADINFOCLASS
     ThreadStrongerBadHandleChecks, // since 22H1
     ThreadEffectiveIoPriority, // q: IO_PRIORITY_HINT
     ThreadEffectivePagePriority, // q: ULONG
-    ThreadUpdateLockOwnership, // since 24H2
+    ThreadUpdateLockOwnership, // THREAD_LOCK_OWNERSHIP // since 24H2
     ThreadSchedulerSharedDataSlot, // SCHEDULER_SHARED_DATA_SLOT_INFORMATION
     ThreadTebInformationAtomic, // THREAD_TEB_INFORMATION
     ThreadIndexInformation, // THREAD_INDEX_INFORMATION
@@ -15184,9 +15258,9 @@ typedef enum _PS_PROTECTED_SIGNER
 
 // vProtectionLevel.Level = PsProtectedValue(PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
 #define PsProtectedValue(aSigner, aAudit, aType) ( \
-    ((aSigner & PS_PROTECTED_SIGNER_MASK) << 4) | \
-    ((aAudit & PS_PROTECTED_AUDIT_MASK) << 3) | \
-    (aType & PS_PROTECTED_TYPE_MASK)\
+    (((aSigner) & PS_PROTECTED_SIGNER_MASK) << 4) | \
+    (((aAudit) & PS_PROTECTED_AUDIT_MASK) << 3) | \
+    ((aType) & PS_PROTECTED_TYPE_MASK)\
     )
 
 // InitializePsProtection(&vProtectionLevel, PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
@@ -15499,11 +15573,15 @@ typedef struct _THREAD_LAST_SYSCALL_INFORMATION
  */
 typedef struct _THREAD_CYCLE_TIME_INFORMATION
 {
-    // The total number of cycles accumulated by the thread.
-    ULONGLONG AccumulatedCycles;
-    // The current cycle count of the thread.
-    ULONGLONG CurrentCycleCount;
+    ULONGLONG AccumulatedCycles;        // The total number of cycles accumulated by the thread.
+    ULONGLONG CurrentCycleCount;        // The current cycle count of the thread.
 } THREAD_CYCLE_TIME_INFORMATION, *PTHREAD_CYCLE_TIME_INFORMATION;
+
+// RtlAbPostRelease / ReleaseAllUserModeAutoBoostLockHandles
+typedef struct _THREAD_LOCK_OWNERSHIP
+{
+    ULONG SrwLock[1];
+} THREAD_LOCK_OWNERSHIP, *PTHREAD_LOCK_OWNERSHIP;
 
 typedef enum _SCHEDULER_SHARED_DATA_SLOT_ACTION
 {
@@ -15529,18 +15607,14 @@ typedef struct _THREAD_TEB_INFORMATION
 /**
  * The COUNTER_READING structure is used to store individual counter data from a hardware counter.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-hardware_counter_data
  */
 typedef struct _COUNTER_READING
 {
-    // Specifies the type of hardware counter data collected.
-    HARDWARE_COUNTER_TYPE Type;
-    // An identifier for the specific counter.
-    ULONG Index;
-    // The initial value of the counter when measurement started.
-    ULONG64 Start;
-    // The accumulated value of the counter over the measurement period.
-    ULONG64 Total;
+    HARDWARE_COUNTER_TYPE Type;     // Specifies the type of hardware counter data collected.
+    ULONG Index;                    // An identifier for the specific counter.
+    ULONG64 Start;                  // The initial value of the counter when measurement started.
+    ULONG64 Total;                  // The accumulated value of the counter over the measurement period.
 } COUNTER_READING, *PCOUNTER_READING;
 
 #ifndef THREAD_PERFORMANCE_DATA_VERSION
@@ -15554,26 +15628,16 @@ typedef struct _COUNTER_READING
  */
 typedef struct _THREAD_PERFORMANCE_DATA
 {
-    // The size of the structure.
-    USHORT Size;
-    // The version of the structure. Must be set to PERFORMANCE_DATA_VERSION.
-    USHORT Version;
-    // The processor number that identifies where the thread is running.
-    PROCESSOR_NUMBER ProcessorNumber;
-    // The number of context switches that occurred from the time profiling was enabled.
-    ULONG ContextSwitches;
-    // The number of array elements in the HwCounters array that contain hardware counter data.
-    ULONG HwCountersCount;
-    // The number of times that the read operation read the data to ensure a consistent snapshot of the data.
-    ULONG64 UpdateCount;
-    // A bitmask of KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
-    ULONG64 WaitReasonBitMap;
-    // A bitmask of hardware counters used to collect counter data.
-    ULONG64 HardwareCounters;
-    // The cycle time of the thread (excludes the time spent interrupted) from the time profiling was enabled.
-    COUNTER_READING CycleTime;
-    // The COUNTER_READING structure that contains hardware counter data.
-    COUNTER_READING HwCounters[MAX_HW_COUNTERS];
+    USHORT Size;                                    // The size of the structure.
+    USHORT Version;                                 // The version of the structure. Must be set to PERFORMANCE_DATA_VERSION.
+    PROCESSOR_NUMBER ProcessorNumber;               // The processor number that identifies where the thread is running.
+    ULONG ContextSwitches;                          // The number of context switches that occurred from the time profiling was enabled.
+    ULONG HwCountersCount;                          // The number of array elements in the HwCounters array that contain hardware counter data.
+    ULONG64 UpdateCount;                            // The number of times that the read operation read the data to ensure a consistent snapshot of the data.
+    ULONG64 WaitReasonBitMap;                       // A bitmask of KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
+    ULONG64 HardwareCounters;                       // A bitmask of hardware counters used to collect counter data.
+    COUNTER_READING CycleTime;                      // The cycle time of the thread (excludes the time spent interrupted) from the time profiling was enabled.
+    COUNTER_READING HwCounters[MAX_HW_COUNTERS];    // The COUNTER_READING structure that contains hardware counter data.
 } THREAD_PERFORMANCE_DATA, *PTHREAD_PERFORMANCE_DATA;
 
 #ifndef THREAD_PROFILING_FLAG_DISPATCH
@@ -15587,7 +15651,7 @@ typedef struct _THREAD_PERFORMANCE_DATA
 /**
  * The THREAD_PROFILING_INFORMATION structure contains profiling information and references to performance data.
  *
- * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-readthreadprofilingdata
  */
 typedef struct _THREAD_PROFILING_INFORMATION
 {
@@ -15669,7 +15733,7 @@ typedef struct _THREAD_UMS_INFORMATION
  */
 typedef struct _THREAD_NAME_INFORMATION
 {
-    // An Unicode string that specifies the description of the thread.
+    // A Unicode string that specifies the description of the thread.
     UNICODE_STRING ThreadName;
 } THREAD_NAME_INFORMATION, *PTHREAD_NAME_INFORMATION;
 
@@ -15982,6 +16046,18 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQueryInformationProcess(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESSINFOCLASS ProcessInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtWow64QueryInformationProcess64(
     _In_ HANDLE ProcessHandle,
     _In_ PROCESSINFOCLASS ProcessInformationClass,
     _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
@@ -16428,6 +16504,17 @@ NTAPI
 NtAlertThreadByThreadIdEx(
     _In_ HANDLE ThreadId,
     _In_opt_ PRTL_SRWLOCK Lock
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAlertMultipleThreadByThreadId(
+    _In_ PHANDLE MultipleThreadId,
+    _In_ ULONG Count,
+    _In_ PVOID Boost,
+    _In_ ULONG BoostCount
     );
 #endif
 
@@ -17931,7 +18018,7 @@ NTSYSAPI
 ULONG
 STDAPIVCALLTYPE
 DbgPrint(
-    _In_z_ _Printf_format_string_ PCSTR Format,
+    _In_z_ _Printf_format_string_ PCCH Format,
     ...
     );
 
@@ -17941,7 +18028,7 @@ STDAPIVCALLTYPE
 DbgPrintEx(
     _In_ ULONG ComponentId,
     _In_ ULONG Level,
-    _In_z_ _Printf_format_string_ PCSTR Format,
+    _In_z_ _Printf_format_string_ PCCH Format,
     ...
     );
 
@@ -17964,6 +18051,14 @@ vDbgPrintExWithPrefix(
     _In_ ULONG Level,
     _In_z_ PCCH Format,
     _In_ va_list arglist
+    );
+
+NTSYSAPI
+ULONG
+STDAPIVCALLTYPE
+DbgPrintReturnControlC(
+    _In_z_ _Printf_format_string_ PCCH Format,
+    ...
     );
 
 NTSYSAPI
@@ -18144,7 +18239,7 @@ NTAPI
 NtSetInformationDebugObject(
     _In_ HANDLE DebugObjectHandle,
     _In_ DEBUGOBJECTINFOCLASS DebugObjectInformationClass,
-    _In_ PVOID DebugInformation,
+    _In_reads_bytes_(DebugInformationLength) PVOID DebugInformation,
     _In_ ULONG DebugInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
@@ -18578,24 +18673,38 @@ typedef enum _FILE_INFORMATION_CLASS
     FileMaximumInformation
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
+//
 // NtQueryInformationFile/NtSetInformationFile types
+//
 
+/**
+ * The FILE_BASIC_INFORMATION structure contains timestamps and basic attributes of a file.
+ * \li If you specify a value of zero for any of the XxxTime members, the file system keeps a file's current value for that time.
+ * \li If you specify a value of -1 for any of the XxxTime members, time stamp updates are disabled for I/O operations preformed on the file handle.
+ * \li If you specify a value of -2 for any of the XxxTime members, time stamp updates are enabled for I/O operations preformed on the file handle.
+ * \remarks To set the members of this structure, the caller must have FILE_WRITE_ATTRIBUTES access to the file.
+ */
 typedef struct _FILE_BASIC_INFORMATION
 {
-    LARGE_INTEGER CreationTime;
-    LARGE_INTEGER LastAccessTime;
-    LARGE_INTEGER LastWriteTime;
-    LARGE_INTEGER ChangeTime;
-    ULONG FileAttributes;
+    LARGE_INTEGER CreationTime;         // Specifies the time that the file was created.
+    LARGE_INTEGER LastAccessTime;       // Specifies the time that the file was last accessed.
+    LARGE_INTEGER LastWriteTime;        // Specifies the time that the file was last written to.
+    LARGE_INTEGER ChangeTime;           // Specifies the last time the file was changed.
+    ULONG FileAttributes;               // Specifies one or more FILE_ATTRIBUTE_XXX flags.
 } FILE_BASIC_INFORMATION, *PFILE_BASIC_INFORMATION;
 
+/**
+ * The FILE_STANDARD_INFORMATION structure contains standard information of a file.
+ * \remarks EndOfFile specifies the byte offset to the end of the file.
+ * Because this value is zero-based, it actually refers to the first free byte in the file; that is, it is the offset to the byte immediately following the last valid byte in the file.
+ */
 typedef struct _FILE_STANDARD_INFORMATION
 {
-    LARGE_INTEGER AllocationSize;
-    LARGE_INTEGER EndOfFile;
-    ULONG NumberOfLinks;
-    BOOLEAN DeletePending;
-    BOOLEAN Directory;
+    LARGE_INTEGER AllocationSize;       // The file allocation size in bytes. Usually, this value is a multiple of the sector or cluster size of the underlying physical device.
+    LARGE_INTEGER EndOfFile;            // The end of file location as a byte offset.
+    ULONG NumberOfLinks;                // The number of hard links to the file.
+    BOOLEAN DeletePending;              // The delete pending status. TRUE indicates that a file deletion has been requested.
+    BOOLEAN Directory;                  // The file directory status. TRUE indicates the file object represents a directory.
 } FILE_STANDARD_INFORMATION, *PFILE_STANDARD_INFORMATION;
 
 typedef struct _FILE_STANDARD_INFORMATION_EX
@@ -18943,9 +19052,12 @@ typedef struct _FILE_PROCESS_IDS_USING_FILE_INFORMATION
     _Field_size_(NumberOfProcessIdsInList) ULONG_PTR ProcessIdList[1];
 } FILE_PROCESS_IDS_USING_FILE_INFORMATION, *PFILE_PROCESS_IDS_USING_FILE_INFORMATION;
 
+/**
+ * The FILE_IS_REMOTE_DEVICE_INFORMATION structure indicates whether the file system that contains the file is a remote file system.
+ */
 typedef struct _FILE_IS_REMOTE_DEVICE_INFORMATION
 {
-    BOOLEAN IsRemote;
+    BOOLEAN IsRemote; // A value that indicates whether the file system that contains the file is a remote file system.
 } FILE_IS_REMOTE_DEVICE_INFORMATION, *PFILE_IS_REMOTE_DEVICE_INFORMATION;
 
 typedef struct _FILE_NUMA_NODE_INFORMATION
@@ -19348,7 +19460,7 @@ typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 
 typedef enum _FILE_KNOWN_FOLDER_TYPE
 {
-    KnownFolderNone,
+    KnownFolderNone = 0,
     KnownFolderDesktop,
     KnownFolderDocuments,
     KnownFolderDownloads,
@@ -19356,7 +19468,7 @@ typedef enum _FILE_KNOWN_FOLDER_TYPE
     KnownFolderPictures,
     KnownFolderVideos,
     KnownFolderOther,
-    KnownFolderMax = 7
+    KnownFolderMax
 } FILE_KNOWN_FOLDER_TYPE;
 
 typedef struct _FILE_KNOWN_FOLDER_INFORMATION
@@ -20379,13 +20491,9 @@ NtNotifyChangeDirectoryFileEx(
 #endif
 
 /**
- * @brief Loads a driver.
- *
- * This function loads a driver specified by the DriverServiceName parameter.
- *
- * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
- *
- * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * \brief The NtLoadDriver function loads a driver specified by the DriverServiceName parameter.
+ * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to load.
+ * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully loaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_INSUFFICIENT_RESOURCES: There are insufficient resources to load the driver.
@@ -20401,13 +20509,9 @@ NtLoadDriver(
     );
 
 /**
- * @brief Unloads a driver.
- *
- * This function unloads a driver specified by the DriverServiceName parameter.
- *
- * @param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
- *
- * @return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
+ * \brief The NtUnloadDriver function unloads a driver specified by the DriverServiceName parameter.
+ * \param DriverServiceName A pointer to a UNICODE_STRING structure that specifies the name of the driver service to unload.
+ * \return NTSTATUS The status code returned by the function. Possible values include, but are not limited to:
  * - STATUS_SUCCESS: The driver was successfully unloaded.
  * - STATUS_INVALID_PARAMETER: The DriverServiceName parameter is invalid.
  * - STATUS_OBJECT_NAME_NOT_FOUND: The specified driver service name was not found.
@@ -23652,7 +23756,7 @@ NtReplacePartitionUnit(
 #define MonitorInvocation 68 // (kernel-mode only)
 #define FirmwareTableInformationRegistered 69 // (kernel-mode only)
 #define SetShutdownSelectedTime 70 // in: NULL
-#define SuspendResumeInvocation 71 // (kernel-mode only)
+#define SuspendResumeInvocation 71 // (kernel-mode only) // not implemented
 #define PlmPowerRequestCreate 72 // in: COUNTED_REASON_CONTEXT, out: HANDLE
 #define ScreenOff 73 // in: NULL (PowerMonitorOff)
 #define CsDeviceNotification 74 // (kernel-mode only)
@@ -26599,7 +26703,37 @@ RtlRbRemoveNode(
     _In_ PRTL_RB_TREE Tree,
     _In_ PRTL_BALANCED_NODE Node
     );
+#endif
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlCompareExchangePointerMapping(
+    _In_ PRTL_BALANCED_NODE Node1,
+    _In_ PRTL_BALANCED_NODE Node2,
+    _Out_ PRTL_BALANCED_NODE *Node3,
+    _Out_ PRTL_BALANCED_NODE *Node4
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryPointerMapping(
+    _In_ PRTL_RB_TREE Tree,
+    _Inout_ PRTL_BALANCED_NODE Children
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlRemovePointerMapping(
+    _In_ PRTL_RB_TREE Tree,
+    _Inout_ PRTL_BALANCED_NODE Children
+    );
 #endif
 
 // Hash tables
@@ -26737,6 +26871,18 @@ RtlCreateHashTable(
     _Inout_ _When_(*HashTable == NULL, __drv_allocatesMem(Mem)) PRTL_DYNAMIC_HASH_TABLE *HashTable,
     _In_ ULONG Shift,
     _In_ _Reserved_ ULONG Flags
+    );
+
+_Must_inspect_result_
+_Success_(return != 0)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlCreateHashTableEx(
+    _Inout_ _When_(NULL == *HashTable, _At_(*HashTable, __drv_allocatesMem(Mem))) PRTL_DYNAMIC_HASH_TABLE *HashTable,
+    _In_ ULONG InitialSize,
+    _In_ ULONG Shift,
+    _Reserved_ ULONG Flags
     );
 
 NTSYSAPI
@@ -27022,6 +27168,22 @@ RtlCheckForOrphanedCriticalSections(
     _In_ HANDLE ThreadHandle
     );
 
+/**
+ * Enables the creation of early critical section events.
+ *
+ * This function allows the system to create critical section events early in the process
+ * initialization. It is typically used to ensure that critical sections are properly
+ * initialized and can be used safely during the early stages of process startup.
+ * @remarks This function sets the FLG_CRITSEC_EVENT_CREATION flag in the PEB flags field.
+ * @return A pointer to the Process Environment Block (PEB).
+ */
+NTSYSAPI
+PPEB
+NTAPI
+RtlEnableEarlyCriticalSectionEventCreation(
+    VOID
+    );
+
 // Resources
 
 typedef struct _RTL_RESOURCE
@@ -27091,6 +27253,13 @@ NTSYSAPI
 VOID
 NTAPI
 RtlConvertExclusiveToShared(
+    _Inout_ PRTL_RESOURCE Resource
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlDumpResource(
     _Inout_ PRTL_RESOURCE Resource
     );
 
@@ -27179,6 +27348,52 @@ RtlConvertSRWLockExclusiveToShared(
     _Inout_ PRTL_SRWLOCK SRWLock
     );
 #endif
+
+//
+// Read-Copy Update.
+//
+// RCU synchronization allows concurrent access to shared data structures,
+// such as linked lists, trees, or hash tables, without using traditional locking methods
+// in scenarios where read operations are frequent and need to be fast.
+// @remarks RCU synchronization is not for general-purpose synchronization.
+// Teb->Rcu is used to store the RCU state.
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlRcuAllocate(
+    _In_ SIZE_T Size
+    );
+
+NTSYSAPI
+LOGICAL
+NTAPI
+RtlRcuFree(
+    _In_ PULONG Rcu
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlRcuReadLock(
+    _Inout_ PRTL_SRWLOCK SRWLock,
+    _Out_ PULONG Rcu
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlRcuReadUnlock(
+    _Inout_ PRTL_SRWLOCK SRWLock,
+    _Inout_ PULONG* Rcu
+    );
+
+NTSYSAPI
+LONG
+NTAPI
+RtlRcuSynchronize(
+    _Inout_ PRTL_SRWLOCK SRWLock
+    );
 
 #endif
 
@@ -29668,7 +29883,67 @@ RtlGetFunctionTableListHead(
 
 #endif
 
+//
+// Linked lists
+//
+
+NTSYSAPI
+VOID
+NTAPI
+RtlInitializeSListHead(
+    _Out_ PSLIST_HEADER ListHead
+    );
+
+_Must_inspect_result_
+NTSYSAPI
+PSLIST_ENTRY
+NTAPI
+RtlFirstEntrySList(
+    _In_ const SLIST_HEADER *ListHead
+    );
+
+NTSYSAPI
+PSLIST_ENTRY
+NTAPI
+RtlInterlockedPopEntrySList(
+    _Inout_ PSLIST_HEADER ListHead
+    );
+
+NTSYSAPI
+PSLIST_ENTRY
+NTAPI
+RtlInterlockedPushEntrySList(
+    _Inout_ PSLIST_HEADER ListHead,
+    _Inout_ __drv_aliasesMem PSLIST_ENTRY ListEntry
+    );
+
+NTSYSAPI
+PSLIST_ENTRY
+NTAPI
+RtlInterlockedPushListSListEx(
+    _Inout_ PSLIST_HEADER ListHead,
+    _Inout_ __drv_aliasesMem PSLIST_ENTRY List,
+    _Inout_ PSLIST_ENTRY ListEnd,
+    _In_ DWORD Count
+    );
+
+NTSYSAPI
+PSLIST_ENTRY
+NTAPI
+RtlInterlockedFlushSList(
+    _Inout_ PSLIST_HEADER ListHead
+    );
+
+NTSYSAPI
+WORD
+NTAPI
+RtlQueryDepthSList(
+    _In_ PSLIST_HEADER ListHead
+    );
+
+//
 // Activation Contexts
+//
 
 #define INVALID_ACTIVATION_CONTEXT ((HANDLE)(LONG_PTR)-1)
 #define ACTCTX_PROCESS_DEFAULT ((HANDLE)(LONG_PTR)0)
@@ -29969,7 +30244,19 @@ RtlValidateUserCallTarget(
     );
 #endif
 
+//
 // Memory
+//
+
+_Check_return_
+NTSYSAPI
+SIZE_T
+NTAPI
+RtlCompareMemory(
+    _In_ const VOID* Source1,
+    _In_ const VOID* Source2,
+    _In_ SIZE_T Length
+    );
 
 _Must_inspect_result_
 NTSYSAPI
@@ -30066,7 +30353,66 @@ RtlIsZeroMemory(
     );
 #endif
 
+NTSYSAPI
+ULONG
+NTAPI
+RtlCrc32(
+    _In_reads_bytes_(Size) const void *Buffer,
+    _In_ size_t Size,
+    _In_ ULONG InitialCrc
+    );
+
+NTSYSAPI
+ULONGLONG
+NTAPI
+RtlCrc64(
+    _In_reads_bytes_(Size) const void *Buffer,
+    _In_ size_t Size,
+    _In_ ULONGLONG InitialCrc
+    );
+
+// RTL_SYSTEM_GLOBAL_DATA_ID
+#define GlobalDataIdUnknown 0
+#define GlobalDataIdRngSeedVersion 1
+#define GlobalDataIdInterruptTime 2
+#define GlobalDataIdTimeZoneBias 3
+#define GlobalDataIdImageNumberLow 4
+#define GlobalDataIdImageNumberHigh 5
+#define GlobalDataIdTimeZoneId 6
+#define GlobalDataIdNtMajorVersion 7
+#define GlobalDataIdNtMinorVersion 8
+#define GlobalDataIdSystemExpirationDate 9
+#define GlobalDataIdKdDebuggerEnabled 10
+#define GlobalDataIdCyclesPerYield 11
+#define GlobalDataIdSafeBootMode 12
+#define GlobalDataIdLastSystemRITEventTickCount 13
+#define GlobalDataIdConsoleSharedDataFlags 14
+#define GlobalDataIdNtSystemRootDrive 15
+#define GlobalDataIdQpcBypassEnabled 16
+#define GlobalDataIdQpcData 17
+#define GlobalDataIdQpcBias 18
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlGetSystemGlobalData(
+    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
+    _Inout_ PVOID Buffer,
+    _In_ ULONG Size
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+RtlSetSystemGlobalData(
+    _In_ RTL_SYSTEM_GLOBAL_DATA_ID DataId,
+    _In_ PVOID Buffer,
+    _In_ ULONG Size
+    );
+
+//
 // Environment
+//
 
 NTSYSAPI
 NTSTATUS
@@ -31884,6 +32230,40 @@ RtlUlonglongByteSwap(
     );
 #endif
 
+DECLSPEC_DEPRECATED
+NTSYSAPI
+LARGE_INTEGER
+NTAPI
+RtlConvertUlongToLargeInteger(
+    _In_ ULONG UnsignedInteger
+    );
+
+DECLSPEC_DEPRECATED
+NTSYSAPI
+LARGE_INTEGER
+NTAPI
+RtlConvertLongToLargeInteger(
+    _In_ LONG SignedInteger
+    );
+
+DECLSPEC_DEPRECATED
+NTSYSAPI
+LARGE_INTEGER
+NTAPI
+RtlEnlargedIntegerMultiply(
+    _In_ LONG Multiplicand,
+    _In_ LONG Multiplier
+    );
+
+DECLSPEC_DEPRECATED
+NTSYSAPI
+LARGE_INTEGER
+NTAPI_INLINE
+RtlEnlargedUnsignedMultiply(
+    _In_ ULONG Multiplicand,
+    _In_ ULONG Multiplier
+    );
+
 // Debugging
 
 // private
@@ -33477,8 +33857,19 @@ RtlDeriveCapabilitySidsFromName(
     );
 #endif
 
+//
 // Security Descriptors
+//
 
+/**
+ * The RtlCreateSecurityDescriptor routine initializes a new absolute-format security descriptor.
+ * On return, the security descriptor is initialized with no system ACL, no discretionary ACL, no owner, no primary group, and all control flags set to zero.
+ *
+ * \param SecurityDescriptor Pointer to the buffer for the \ref SECURITY_DESCRIPTOR to be initialized.
+ * \param Revision Specifies the revision level to assign to the security descriptor. Set this parameter to SECURITY_DESCRIPTOR_REVISION.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcreatesecuritydescriptor
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -33487,6 +33878,14 @@ RtlCreateSecurityDescriptor(
     _In_ ULONG Revision
     );
 
+/**
+ * The RtlValidSecurityDescriptor routine checks a given security descriptor's validity.
+ *
+ * \param SecurityDescriptor Pointer to the \ref SECURITY_DESCRIPTOR to be checked.
+ * @return Returns TRUE if the security descriptor is valid, or FALSE otherwise.
+ * @remarks The routine checks the validity of an absolute-format security descriptor. To check the validity of a self-relative security descriptor, use the \ref RtlValidRelativeSecurityDescriptor routine instead.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlvalidsecuritydescriptor
+ */
 _Check_return_
 NTSYSAPI
 BOOLEAN
@@ -33495,6 +33894,13 @@ RtlValidSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+/**
+ * The RtlLengthSecurityDescriptor routine returns the size of a given security descriptor.
+ *
+ * \param SecurityDescriptor A pointer to a \ref SECURITY_DESCRIPTOR structure whose length the function retrieves.
+ * @return Returns the length, in bytes, of the SECURITY_DESCRIPTOR structure.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtllengthsecuritydescriptor
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -33502,6 +33908,16 @@ RtlLengthSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+/**
+ * The RtlValidRelativeSecurityDescriptor routine checks the validity of a self-relative security descriptor.
+ *
+ * \param SecurityDescriptorInput A pointer to the buffer that contains the security descriptor in self-relative format.
+ * The buffer must begin with a SECURITY_DESCRIPTOR structure, which is followed by the rest of the security descriptor data.
+ * \param SecurityDescriptorLength The size of the SecurityDescriptorInput structure.
+ * \param RequiredInformation A SECURITY_INFORMATION value that specifies the information that is required to be contained in the security descriptor.
+ * @return RtlValidRelativeSecurityDescriptor returns TRUE if the security descriptor is valid and includes the information that the RequiredInformation parameter specifies. Otherwise, this routine returns FALSE.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlvalidrelativesecuritydescriptor
+ */
 _Check_return_
 NTSYSAPI
 BOOLEAN
@@ -33595,6 +34011,19 @@ RtlGetSaclSecurityDescriptor(
     _Out_ PBOOLEAN SaclDefaulted
     );
 
+/**
+ * The RtlSetOwnerSecurityDescriptor routine sets the owner information of an absolute-format security descriptor. It replaces any owner information that is already present in the security descriptor.
+ *
+ * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure whose owner is to be set. RtlSetOwnerSecurityDescriptor replaces any existing owner with the new owner.
+ * \param Owner Pointer to a security identifier (SID) structure for the security descriptor's new primary owner.
+ * \li \c This pointer, not the SID structure itself, is copied into the security descriptor.
+ * \li \c If this parameter is NULL, RtlSetOwnerSecurityDescriptor clears the security descriptor's owner information. This marks the security descriptor as having no owner.
+ * \param OwnerDefaulted Set to TRUE if the owner information is derived from a default mechanism.
+ * \li \c If this value is TRUE, it is default information. RtlSetOwnerSecurityDescriptor sets the SE_OWNER_DEFAULTED flag in the security descriptor's SECURITY_DESCRIPTOR_CONTROL field.
+ * \li \c If this parameter is FALSE, the SE_OWNER_DEFAULTED flag is cleared.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetownersecuritydescriptor
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -33604,6 +34033,15 @@ RtlSetOwnerSecurityDescriptor(
     _In_ BOOLEAN OwnerDefaulted
     );
 
+/**
+ * The RtlGetOwnerSecurityDescriptor routine returns the owner information for a given security descriptor.
+ *
+ * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure.
+ * \param Owner Pointer to an address to receive a pointer to the owner security identifier (SID). If the security descriptor does not currently contain an owner SID, Owner receives NULL.
+ * \param OwnerDefaulted Pointer to a Boolean variable that receives TRUE if the owner information is derived from a default mechanism, FALSE otherwise. Valid only if Owner receives a non-NULL value.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlgetownersecuritydescriptor
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -33613,6 +34051,19 @@ RtlGetOwnerSecurityDescriptor(
     _Out_ PBOOLEAN OwnerDefaulted
     );
 
+/**
+ * The RtlSetGroupSecurityDescriptor routine sets the primary group information of an absolute-format security descriptor. It replaces any primary group information that is already present in the security descriptor.
+ *
+ * \param SecurityDescriptor Pointer to the SECURITY_DESCRIPTOR structure whose primary group is to be set. RtlSetGroupSecurityDescriptor replaces any existing primary group with the new primary group.
+ * \param Group Pointer to a security identifier (SID) structure for the security descriptor's new primary owner.
+ * \li \c This pointer, not the SID structure itself, is copied into the security descriptor.
+ * \li \c If Group is NULL, RtlSetGroupSecurityDescriptor clears the security descriptor's primary group information. This marks the security descriptor as having no primary group.
+ * \param GroupDefaulted Set this Boolean variable to TRUE if the primary group information is derived from a default mechanism.
+ * \li \c If this parameter is TRUE, RtlSetGroupSecurityDescriptor sets the SE_GROUP_DEFAULTED flag in the security descriptor's SECURITY_DESCRIPTOR_CONTROL field.
+ * \li \c If this parameter is FALSE, RtlSetGroupSecurityDescriptor clears the SE_GROUP_DEFAULTED flag.
+ * @return NTSTATUS Successful or errant status.
+ * @see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-rtlsetgroupsecuritydescriptor
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -33692,6 +34143,16 @@ RtlNormalizeSecurityDescriptor(
 // Access masks
 
 #ifndef PHNT_NO_INLINE_ACCESSES_GRANTED
+/**
+ * Checks if all desired accesses are granted.
+ *
+ * This function determines whether all the accesses specified in the DesiredAccess
+ * mask are granted by the GrantedAccess mask.
+ *
+ * \param GrantedAccess The access mask that specifies the granted accesses.
+ * \param DesiredAccess The access mask that specifies the desired accesses.
+ * @return Returns TRUE if all desired accesses are granted, otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -33703,6 +34164,16 @@ RtlAreAllAccessesGranted(
     return (~GrantedAccess & DesiredAccess) == 0;
 }
 
+/**
+ * Checks if any of the desired accesses are granted.
+ *
+ * This function determines if any of the access rights specified in the DesiredAccess
+ * mask are present in the GrantedAccess mask.
+ *
+ * \param GrantedAccess The access mask that specifies the granted access rights.
+ * \param DesiredAccess The access mask that specifies the desired access rights.
+ * @return Returns TRUE if any of the desired access rights are granted, otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -33714,6 +34185,16 @@ RtlAreAnyAccessesGranted(
     return (GrantedAccess & DesiredAccess) != 0;
 }
 #else
+/**
+ * Checks if all desired accesses are granted.
+ *
+ * This function determines whether all the accesses specified in the DesiredAccess
+ * mask are granted by the GrantedAccess mask.
+ *
+ * \param GrantedAccess The access mask that specifies the granted accesses.
+ * \param DesiredAccess The access mask that specifies the desired accesses.
+ * @return Returns TRUE if all desired accesses are granted, otherwise FALSE.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -33722,6 +34203,16 @@ RtlAreAllAccessesGranted(
     _In_ ACCESS_MASK DesiredAccess
     );
 
+/**
+ * Checks if any of the desired accesses are granted.
+ *
+ * This function determines if any of the access rights specified in the DesiredAccess
+ * mask are present in the GrantedAccess mask.
+ *
+ * \param GrantedAccess The access mask that specifies the granted access rights.
+ * \param DesiredAccess The access mask that specifies the desired access rights.
+ * @return Returns TRUE if any of the desired access rights are granted, otherwise FALSE.
+ */
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -34754,7 +35245,18 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 RtlGetNativeSystemInformation(
-    _In_ ULONG SystemInformationClass,
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    _In_ PVOID NativeSystemInformation,
+    _In_ ULONG InformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+NtWow64GetNativeSystemInformation(
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
     _In_ PVOID NativeSystemInformation,
     _In_ ULONG InformationLength,
     _Out_opt_ PULONG ReturnLength
@@ -35095,6 +35597,131 @@ RtlGetUnloadEventTraceEx(
     _Out_ PVOID *EventTrace // works across all processes
     );
 #endif
+
+
+NTSYSAPI
+_Success_(return != 0)
+USHORT
+NTAPI
+RtlCaptureStackBackTrace(
+    _In_ ULONG FramesToSkip,
+    _In_ ULONG FramesToCapture,
+    _Out_writes_to_(FramesToCapture,return) PVOID* BackTrace,
+    _Out_opt_ PULONG BackTraceHash
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlCaptureContext(
+    _Out_ PCONTEXT ContextRecord
+    );
+
+#if (PHNT_VERSION >= PHNT_WIN10_20H1)
+NTSYSAPI
+VOID
+NTAPI
+RtlCaptureContext2(
+    _Inout_ PCONTEXT ContextRecord
+    );
+#endif
+
+#if (PHNT_VERSION >= PHNT_WIN11)
+NTSYSAPI
+VOID
+__cdecl
+RtlRestoreContext(
+    _In_ PCONTEXT ContextRecord,
+    _In_opt_ struct _EXCEPTION_RECORD* ExceptionRecord
+    );
+#endif
+
+
+NTSYSAPI
+VOID
+NTAPI
+RtlUnwind(
+    _In_opt_ PVOID TargetFrame,
+    _In_opt_ PVOID TargetIp,
+    _In_opt_ PEXCEPTION_RECORD ExceptionRecord,
+    _In_ PVOID ReturnValue
+    );
+
+#if defined(_M_AMD64) && defined(_M_ARM64EC)
+NTSYSAPI
+BOOLEAN
+__cdecl
+RtlAddFunctionTable(
+    _In_reads_(EntryCount) PRUNTIME_FUNCTION FunctionTable,
+    _In_ DWORD EntryCount,
+    _In_ DWORD64 BaseAddress
+    );
+
+NTSYSAPI
+BOOLEAN
+__cdecl
+RtlDeleteFunctionTable(
+    _In_ PRUNTIME_FUNCTION FunctionTable
+    );
+
+NTSYSAPI
+BOOLEAN
+__cdecl
+RtlInstallFunctionTableCallback(
+    _In_ DWORD64 TableIdentifier,
+    _In_ DWORD64 BaseAddress,
+    _In_ DWORD Length,
+    _In_ PGET_RUNTIME_FUNCTION_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_opt_ PCWSTR OutOfProcessCallbackDll
+    );
+
+#if (PHNT_VERSION >= PHNT_WIN8)
+NTSYSAPI
+DWORD
+NTAPI
+RtlAddGrowableFunctionTable(
+    _Out_ PVOID* DynamicTable,
+    _In_reads_(MaximumEntryCount) PRUNTIME_FUNCTION FunctionTable,
+    _In_ DWORD EntryCount,
+    _In_ DWORD MaximumEntryCount,
+    _In_ ULONG_PTR RangeBase,
+    _In_ ULONG_PTR RangeEnd
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlGrowFunctionTable(
+    _Inout_ PVOID DynamicTable,
+    _In_ DWORD NewEntryCount
+    );
+
+NTSYSAPI
+VOID
+NTAPI
+RtlDeleteGrowableFunctionTable(
+    _In_ PVOID DynamicTable
+    );
+#endif
+#endif
+
+#if defined(_M_ARM64EC)
+NTSYSAPI
+BOOLEAN
+NTAPI
+RtlIsEcCode(
+    _In_ ULONG64 CodePointer
+    );
+#endif
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlPcToFileHeader(
+    _In_ PVOID PcValue,
+    _Out_ PVOID* BaseOfImage
+    );
 
 // end_msdn
 
@@ -35491,6 +36118,11 @@ RtlCheckTokenMembership(
     _Out_ PBOOLEAN IsMember
     );
 
+// RtlCheckTokenMembershipEx Flags
+#define CTMF_INCLUDE_APPCONTAINER 0x00000001UL
+#define CTMF_INCLUDE_LPAC 0x00000002UL
+#define CTMF_VALID_FLAGS (CTMF_INCLUDE_APPCONTAINER | CTMF_INCLUDE_LPAC)
+
 // rev
 NTSYSAPI
 NTSTATUS
@@ -35591,6 +36223,16 @@ RtlFlsAlloc(
     _Out_ PULONG FlsIndex
     );
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlFlsAllocEx(
+    _In_ PFLS_CALLBACK_FUNCTION Callback,
+    _Out_ PULONG,
+    _Out_ PULONG FlsIndex
+    );
+
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -35621,9 +36263,46 @@ RtlFlsSetValue(
     _In_ ULONG FlsIndex,
     _In_ PVOID FlsData
     );
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlProcessFlsData(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PPVOID FlsData
+    );
 #endif
 
+#if (PHNT_VERSION >= PHNT_WIN11)
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlTlsAlloc(
+    _Out_ PULONG TlsIndex
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlTlsFree(
+    _In_ ULONG TlsIndex
+    );
+
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlTlsSetValue(
+    _In_ ULONG TlsIndex,
+    _In_ PVOID TlsData
+    );
+#endif
+
+//
 // State isolation
+//
 
 typedef enum _STATE_LOCATION_TYPE
 {
@@ -36516,6 +37195,16 @@ RtlOverwriteFeatureConfigurationBuffer(
     );
 #endif
 
+// rev
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlNotifyFeatureToggleUsage(
+    _In_ PRTL_FEATURE_USAGE_REPORT FeatureUsageReport,
+    _In_ RTL_FEATURE_ID FeatureId,
+    _In_ ULONG Flags
+    );
+
 #ifndef _RTL_RUN_ONCE_DEF
 #define _RTL_RUN_ONCE_DEF
 //
@@ -36733,6 +37422,31 @@ RtlWow64ChangeThreadState(
     _In_opt_ SIZE_T ExtendedInformationLength,
     _In_opt_ ULONG64 Reserved
     );
+#endif
+
+#ifdef PHNT_INLINE_TYPEDEFS
+#if (PHNT_VERSION >= PHNT_WIN11)
+// rev
+FORCEINLINE
+USHORT
+NTAPI
+RtlGetCurrentThreadPrimaryGroup(
+    VOID
+    )
+{
+    return NtCurrentTeb()->PrimaryGroupAffinity.Group;
+}
+#endif
+#else
+#if (PHNT_VERSION >= PHNT_REDSTONE)
+// rev
+NTSYSAPI
+USHORT
+NTAPI
+RtlGetCurrentThreadPrimaryGroup(
+    VOID
+    );
+#endif
 #endif
 
 #endif // _NTRTL_H
@@ -38860,6 +39574,22 @@ NTSYSAPI
 VOID
 NTAPI
 TpWaitForAlpcCompletion(
+    _Inout_ PTP_ALPC Alpc
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+TpAlpcRegisterCompletionList(
+    _Inout_ PTP_ALPC Alpc
+    );
+
+// rev
+NTSYSAPI
+VOID
+NTAPI
+TpAlpcUnregisterCompletionList(
     _Inout_ PTP_ALPC Alpc
     );
 
@@ -41743,6 +42473,146 @@ NTAPI
 NtVdmControl(
     _In_ VDMSERVICECLASS Service,
     _Inout_ PVOID ServiceData
+    );
+
+// ApiSet
+
+NTSYSAPI
+BOOL
+NTAPI
+ApiSetQueryApiSetPresence(
+    _In_ PCUNICODE_STRING Namespace,
+    _Out_ PBOOLEAN Present
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+ApiSetQueryApiSetPresenceEx(
+    _In_ PCUNICODE_STRING Namespace,
+    _Out_ PBOOLEAN IsInSchema,
+    _Out_ PBOOLEAN Present
+    );
+
+typedef enum _SECURE_SETTING_VALUE_TYPE
+{
+    SecureSettingValueTypeBoolean = 0,
+    SecureSettingValueTypeUlong = 1,
+    SecureSettingValueTypeBinary = 2,
+    SecureSettingValueTypeString = 3,
+    SecureSettingValueTypeUnknown = 4
+} SECURE_SETTING_VALUE_TYPE, *PSECURE_SETTING_VALUE_TYPE;
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySecurityPolicy(
+    _In_ PCUNICODE_STRING Policy,
+    _In_ PCUNICODE_STRING KeyName,
+    _In_ PCUNICODE_STRING ValueName,
+    _In_ SECURE_SETTING_VALUE_TYPE ValueType,
+    _Out_writes_bytes_opt_(*ValueSize) PVOID Value,
+    _Inout_ PULONG ValueSize
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateCrossVmEvent(
+    _Out_ PHANDLE CrossVmEvent,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG CrossVmEventFlags,
+    _In_ LPCGUID VMID,
+    _In_ LPCGUID ServiceID
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateCrossVmMutant(
+    _Out_ PHANDLE EventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG CrossVmEventFlags,
+    _In_ LPCGUID VMID,
+    _In_ LPCGUID ServiceID
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAcquireCrossVmMutant(
+    _In_ HANDLE CrossVmMutant,
+    _In_ PLARGE_INTEGER Timeout
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtDirectGraphicsCall(
+    _In_ ULONG InputBufferLength,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _Out_ PULONG ReturnLength
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtOpenCpuPartition(
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtCreateCpuPartition(
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtSetInformationCpuPartition(
+    _In_ HANDLE CpuPartitionHandle,
+    _In_ ULONG CpuPartitionInformationClass,
+    _In_reads_bytes_(CpuPartitionInformationLength) PVOID CpuPartitionInformation,
+    _In_ ULONG CpuPartitionInformationLength,
+    _Reserved_ PVOID,
+    _Reserved_ ULONG,
+    _Reserved_ ULONG
+    );
+
+// Process KeepAlive (also WakeCounter)
+
+typedef enum _PROCESS_ACTIVITY_TYPE
+{
+    ProcessActivityTypeAudio = 0,
+    ProcessActivityTypeMax = 1
+} PROCESS_ACTIVITY_TYPE;
+
+// rev
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtAcquireProcessActivityReference(
+    _Out_ PHANDLE ActivityReferenceHandle,
+    _In_ HANDLE ParentProcessHandle,
+    _Reserved_ PROCESS_ACTIVITY_TYPE Reserved
     );
 
 #endif  // _NTMISC_H
@@ -47685,7 +48555,7 @@ typedef enum _ETWTRACECONTROLCODE
     EtwWdiSemUpdate = 20,
     EtwEnumTraceGuidList = 21, // out GUID[]
     EtwGetTraceGuidInfo = 22, // in GUID, out ETW_TRACE_GUID_INFO
-    EtwEnumerateTraceGuids = 23,
+    EtwEnumerateTraceGuids = 23, // out TRACE_GUID_PROPERTIES[]
     EtwRegisterSecurityProv = 24,
     EtwReferenceTimeCode = 25, // in ULONG LoggerId, out ETW_REF_CLOCK
     EtwTrackBinaryCode = 26, // in HANDLE
@@ -47934,10 +48804,10 @@ WmiExecuteMethodW(
 // Enable or disable a trace logging guid.
 #define NOTIFICATION_TRACE_FLAG 0x00010000
 // Enable or disable a trace direct callback.
-// The callback is invoked immediately via a seperate thread.
+// The callback is invoked immediately via a separate thread.
 #define NOTIFICATION_CALLBACK_DIRECT 0x00000004
 // Set this flag (and only this flag) when you want to only check if the
-// caller has permission to receive events for the guid
+// caller has permission to receive events for the guid.
 #define NOTIFICATION_CHECK_ACCESS 0x00000008
 // Enable lightweight notification.
 #define NOTIFICATION_LIGHTWEIGHT_FLAG 0x00000020
@@ -47991,7 +48861,7 @@ typedef struct _MOFRESOURCEINFOA
 {
     PSTR ImagePath;        // Path to image containing MOF resource
     PSTR ResourceName;     // Name of resource in image
-    ULONG ResourceSize;     // Number of bytes in resource
+    ULONG ResourceSize;    // Number of bytes in resource
     PUCHAR ResourceBuffer;
 } MOFRESOURCEINFOA, *PMOFRESOURCEINFOA;
 
