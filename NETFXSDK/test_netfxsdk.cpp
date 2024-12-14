@@ -1,6 +1,8 @@
 #include "netfxsdk.h"
 
-//#define TEST
+// #import "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\WMINet_Utils.dll" no_namespace raw_interfaces_only
+
+// #define TEST
 
 #ifdef TEST
 

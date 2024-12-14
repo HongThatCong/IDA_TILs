@@ -1,12 +1,13 @@
 //
 // Microsoft .NET Framework SDK 4.8
+// Ref: https://learn.microsoft.com/en-us/dotnet/framework/unmanaged-api
 // Defines (-D): COBJMACROS and CINTERFACE for C language, not used with C++
 //
 
 #pragma once
 
-#ifndef NETFXSDK
-#define NETFXSDK
+#ifndef _NETFXSDK_H_
+#define _NETFXSDK_H_
 
 // Include enums_netfxsdk first
 #include "enums_netfxsdk.h"
@@ -22,6 +23,7 @@
 #include <corprof.h>
 #include <corpub.h>
 #include <corsym.h>
+#include <dbgshim.h>
 #include <fusion.h>
 #include <gchost.h>
 #include <ICeeFileGen.h>
@@ -41,5 +43,6 @@
 #include <System.Drawing.tlh>
 #include <System.EnterpriseServices.tlh>
 #include <System.Windows.Forms.tlh>
+#include <WMINet_Utils.tlh>
 
-#endif  // NETFXSDK
+#endif  // _NETFXSDK_H_
