@@ -298,7 +298,6 @@ typedef typeof(nullptr) nullptr_t;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 //#define PHNT_NO_INLINE_INIT_STRING
-
 #ifndef PHNT_INLINE_TYPEDEFS
 #define PHNT_INLINE_TYPEDEFS
 #endif
@@ -2451,12 +2450,14 @@ NtDelayExecution(
 // Firmware environment values
 //
 
-
 /**
  * Retrieves the value of the specified firmware environment variable.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
  *
- * @param VariableName
- * @param VariableValue
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VariableValue A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * @param ValueLength The size of the \c VariableValue buffer, in bytes.
+ * @param ReturnLength If the function succeeds, the return length is the number of bytes stored in the \c VariableValue buffer.
  * @return NTSTATUS Successful or errant status.
  */
 NTSYSCALLAPI
@@ -2469,26 +2470,55 @@ NtQuerySystemEnvironmentValue(
     _Out_opt_ PUSHORT ReturnLength
     );
 
+// The firmware environment variable is stored in non-volatile memory (e.g. NVRAM).
 #define EFI_VARIABLE_NON_VOLATILE 0x00000001
+// The firmware environment variable can be accessed during boot service.
 #define EFI_VARIABLE_BOOTSERVICE_ACCESS 0x00000002
+// The firmware environment variable can be accessed at runtime.
 #define EFI_VARIABLE_RUNTIME_ACCESS 0x00000004
+// Indicates hardware related errors encountered at runtime.
 #define EFI_VARIABLE_HARDWARE_ERROR_RECORD 0x00000008
+// Indicates an authentication requirement that must be met before writing to this firmware environment variable.
 #define EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS 0x00000010
+// Indicates authentication and time stamp requirements that must be met before writing to this firmware environment variable.
+// When this attribute is set, the buffer, represented by Buffer, will begin with an instance of a complete (and serialized) EFI_VARIABLE_AUTHENTICATION_2 descriptor.
 #define EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS 0x00000020
+// Append an existing environment variable with the value of Buffer. If the firmware does not support the operation, the function returns ERROR_INVALID_FUNCTION.
 #define EFI_VARIABLE_APPEND_WRITE 0x00000040
+// The firmware environment variable will return metadata in addition to variable data.
 #define EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS 0x00000080
 
+/**
+ * Retrieves the value of the specified firmware environment variable and its attributes.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ *
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * @param Buffer A pointer to a buffer that receives the value of the specified firmware environment variable.
+ * @param BufferLength The size of the \c Buffer, in bytes.
+ * @param Attributes Bitmask identifying UEFI variable attributes associated with the variable.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtQuerySystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
-    _Out_writes_bytes_opt_(*ValueLength) PVOID Value,
-    _Inout_ PULONG ValueLength,
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength,
     _Out_opt_ PULONG Attributes // EFI_VARIABLE_*
     );
 
+/**
+ * Sets the value of the specified firmware environment variable.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ *
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VariableValue A pointer to the new value for the firmware environment variable.
+ * If this parameter is zero, the firmware environment variable is deleted.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2497,14 +2527,28 @@ NtSetSystemEnvironmentValue(
     _In_ PUNICODE_STRING VariableValue
     );
 
+/**
+ * Sets the value of the specified firmware environment variable and the attributes that indicate how this variable is stored and maintained.
+ * The user account that the app is running under must have the SE_SYSTEM_ENVIRONMENT_NAME privilege.
+ *
+ * @param VariableName The name of the firmware environment variable. The pointer must not be NULL.
+ * @param VendorGuid The GUID that represents the namespace of the firmware environment variable.
+ * @param Buffer A pointer to the new value for the firmware environment variable.
+ * @param BufferLength The size of the pValue buffer, in bytes.
+ * Unless the VARIABLE_ATTRIBUTE_APPEND_WRITE, VARIABLE_ATTRIBUTE_AUTHENTICATED_WRITE_ACCESS,
+ * or VARIABLE_ATTRIBUTE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS variable attribute is set via dwAttributes,
+ * setting this value to zero will result in the deletion of this variable.
+ * @param Attributes Bitmask to set UEFI variable attributes associated with the variable.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtSetSystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
-    _In_reads_bytes_opt_(ValueLength) PVOID Value,
-    _In_ ULONG ValueLength, // 0 = delete variable
+    _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength, // 0 = delete variable
     _In_ ULONG Attributes // EFI_VARIABLE_*
     );
 
@@ -15865,7 +15909,9 @@ typedef struct _THREAD_INDEX_INFORMATION
     ULONG Sequence;
 } THREAD_INDEX_INFORMATION, *PTHREAD_INDEX_INFORMATION;
 
+//
 // Processes
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -15897,26 +15943,27 @@ NtCreateProcess(
     );
 
 // begin_rev
+#define PROCESS_CREATE_FLAGS_NONE 0x00000000
 #define PROCESS_CREATE_FLAGS_BREAKAWAY 0x00000001 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT 0x00000002 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_INHERIT_HANDLES 0x00000004 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE 0x00000008 // NtCreateProcessEx only
-#define PROCESS_CREATE_FLAGS_LARGE_PAGES 0x00000010 // NtCreateProcessEx only, requires SeLockMemory
-#define PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL 0x00000020 // NtCreateProcessEx only, requires SeLockMemory
+#define PROCESS_CREATE_FLAGS_LARGE_PAGES 0x00000010 // NtCreateProcessEx only (requires SeLockMemoryPrivilege)
+#define PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL 0x00000020 // NtCreateProcessEx only (requires SeLockMemoryPrivilege)
 #define PROCESS_CREATE_FLAGS_PROTECTED_PROCESS 0x00000040 // NtCreateUserProcess only
-#define PROCESS_CREATE_FLAGS_CREATE_SESSION 0x00000080 // NtCreateProcessEx & NtCreateUserProcess, requires SeLoadDriver
+#define PROCESS_CREATE_FLAGS_CREATE_SESSION 0x00000080 // NtCreateProcessEx & NtCreateUserProcess (requires SeLoadDriverPrivilege)
 #define PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT 0x00000100 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_CREATE_SUSPENDED 0x00000200 // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY 0x00000400 // NtCreateProcessEx & NtCreateUserProcess, requires SeTcb
+#define PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY 0x00000400 // NtCreateProcessEx & NtCreateUserProcess (requires SeTcbPrivilege)
 #define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800 // NtCreateProcessEx only
 #define PROCESS_CREATE_FLAGS_RELEASE_SECTION 0x00001000 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_CLONE_MINIMAL 0x00002000 // NtCreateProcessEx only
-#define PROCESS_CREATE_FLAGS_CLONE_MINIMAL_REDUCED_COMMIT 0x00004000 //
-#define PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS 0x00008000 // NtCreateProcessEx & NtCreateUserProcess, requires SeTcb
+#define PROCESS_CREATE_FLAGS_CLONE_MINIMAL_REDUCED_COMMIT 0x00004000
+#define PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS 0x00008000 // NtCreateProcessEx & NtCreateUserProcess (requires SeTcbPrivilege)
 #define PROCESS_CREATE_FLAGS_CREATE_STORE 0x00020000 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT 0x00040000 // NtCreateProcessEx & NtCreateUserProcess
 #define PROCESS_CREATE_FLAGS_IMAGE_EXPANSION_MITIGATION_DISABLE 0x00080000
-#define PROCESS_CREATE_FLAGS_PARTITION_CREATE_SLAB_IDENTITY 0x00400000 // NtCreateProcessEx & NtCreateUserProcess, requires SeLockMemoryPrivilege
+#define PROCESS_CREATE_FLAGS_PARTITION_CREATE_SLAB_IDENTITY 0x00400000 // NtCreateProcessEx & NtCreateUserProcess (requires SeLockMemoryPrivilege)
 // end_rev
 
 /**
@@ -17296,9 +17343,9 @@ NtCreateUserProcess(
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED 0x00000001 // NtCreateUserProcess & NtCreateThreadEx
 #define THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH 0x00000002 // NtCreateThreadEx only
 #define THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER 0x00000004 // NtCreateThreadEx only
-#define THREAD_CREATE_FLAGS_LOADER_WORKER 0x00000010 // NtCreateThreadEx only, since THRESHOLD
-#define THREAD_CREATE_FLAGS_SKIP_LOADER_INIT 0x00000020 // NtCreateThreadEx only, since REDSTONE2
-#define THREAD_CREATE_FLAGS_BYPASS_PROCESS_FREEZE 0x00000040 // NtCreateThreadEx only, since 19H1
+#define THREAD_CREATE_FLAGS_LOADER_WORKER 0x00000010 // NtCreateThreadEx only // since THRESHOLD
+#define THREAD_CREATE_FLAGS_SKIP_LOADER_INIT 0x00000020 // NtCreateThreadEx only // since REDSTONE2
+#define THREAD_CREATE_FLAGS_BYPASS_PROCESS_FREEZE 0x00000040 // NtCreateThreadEx only // since 19H1
 // end_rev
 
 /**
@@ -29063,7 +29110,9 @@ RtlFreeToPeb(
     );
 #endif
 
+//
 // Processes
+//
 
 typedef struct _CURDIR
 {
@@ -29071,6 +29120,7 @@ typedef struct _CURDIR
     HANDLE Handle;
 } CURDIR, *PCURDIR;
 
+// CURDIR Handle | Flags
 #define RTL_USER_PROC_CURDIR_CLOSE 0x00000002
 #define RTL_USER_PROC_CURDIR_INHERIT 0x00000003
 
@@ -29082,6 +29132,7 @@ typedef struct _RTL_DRIVE_LETTER_CURDIR
     STRING DosPath;
 } RTL_DRIVE_LETTER_CURDIR, *PRTL_DRIVE_LETTER_CURDIR;
 
+// RTL_DRIVE_LETTER_CURDIR Flags
 #define RTL_MAX_DRIVE_LETTERS 32
 #define RTL_DRIVE_LETTER_VALID (USHORT)0x0001
 
@@ -29135,18 +29186,24 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS
     ULONG HeapMemoryTypeMask; // WIN11
 } RTL_USER_PROCESS_PARAMETERS, *PRTL_USER_PROCESS_PARAMETERS;
 
-#define RTL_USER_PROC_PARAMS_NORMALIZED 0x00000001
-#define RTL_USER_PROC_PROFILE_USER 0x00000002
-#define RTL_USER_PROC_PROFILE_KERNEL 0x00000004
-#define RTL_USER_PROC_PROFILE_SERVER 0x00000008
-#define RTL_USER_PROC_RESERVE_1MB 0x00000020
-#define RTL_USER_PROC_RESERVE_16MB 0x00000040
-#define RTL_USER_PROC_CASE_SENSITIVE 0x00000080
-#define RTL_USER_PROC_DISABLE_HEAP_DECOMMIT 0x00000100
-#define RTL_USER_PROC_DLL_REDIRECTION_LOCAL 0x00001000
-#define RTL_USER_PROC_APP_MANIFEST_PRESENT 0x00002000
-#define RTL_USER_PROC_IMAGE_KEY_MISSING 0x00004000
-#define RTL_USER_PROC_OPTIN_PROCESS 0x00020000
+// RTL_USER_PROCESS_PARAMETERS Flags
+#define RTL_USER_PROC_PARAMS_NORMALIZED                 0x00000001
+#define RTL_USER_PROC_PROFILE_USER                      0x00000002
+#define RTL_USER_PROC_PROFILE_KERNEL                    0x00000004
+#define RTL_USER_PROC_PROFILE_SERVER                    0x00000008
+#define RTL_USER_PROC_RESERVE_1MB                       0x00000020
+#define RTL_USER_PROC_RESERVE_16MB                      0x00000040
+#define RTL_USER_PROC_CASE_SENSITIVE                    0x00000080
+#define RTL_USER_PROC_DISABLE_HEAP_DECOMMIT             0x00000100
+#define RTL_USER_PROC_DLL_REDIRECTION_LOCAL             0x00001000
+#define RTL_USER_PROC_APP_MANIFEST_PRESENT              0x00002000
+#define RTL_USER_PROC_IMAGE_KEY_MISSING                 0x00004000
+#define RTL_USER_PROC_DEV_OVERRIDE_ENABLED              0x00008000
+#define RTL_USER_PROC_OPTIN_PROCESS                     0x00020000
+#define RTL_USER_PROC_SESSION_OWNER                     0x00040000
+#define RTL_USER_PROC_HANDLE_USER_CALLBACK_EXCEPTIONS   0x00080000
+#define RTL_USER_PROC_PROTECTED_PROCESS                 0x00400000
+#define RTL_USER_PROC_SECURE_PROCESS                    0x80000000
 
 NTSYSAPI
 NTSTATUS
@@ -29241,7 +29298,7 @@ NTSTATUS
 NTAPI
 RtlCreateUserProcess(
     _In_ PUNICODE_STRING NtImagePathName,
-    _In_ ULONG AttributesDeprecated,
+    _In_ ULONG ExtendedParameters, // HIWORD(NumaNodeNumber), LOWORD(Reserved)
     _In_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
     _In_opt_ PSECURITY_DESCRIPTOR ProcessSecurityDescriptor,
     _In_opt_ PSECURITY_DESCRIPTOR ThreadSecurityDescriptor,
@@ -29470,7 +29527,6 @@ RtlExitUserThread(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-
 // rev
 NTSYSAPI
 BOOLEAN
@@ -29478,11 +29534,9 @@ NTAPI
 RtlIsCurrentThreadAttachExempt(
     VOID
     );
-
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
-
 // private
 NTSYSAPI
 NTSTATUS
@@ -29503,7 +29557,6 @@ NTAPI
 RtlFreeUserStack(
     _In_ PVOID AllocationBase
     );
-
 #endif
 
 // Extended thread context
@@ -32928,7 +32981,7 @@ RtlSecondsSince1970ToTime(
 
 #if (PHNT_VERSION >= PHNT_WIN8)
 NTSYSAPI
-LARGE_INTEGER
+ULONGLONG
 NTAPI
 RtlGetSystemTimePrecise(
     VOID
@@ -32948,7 +33001,7 @@ RtlGetSystemTimeAndBias(
 
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 NTSYSAPI
-LARGE_INTEGER
+ULONGLONG
 NTAPI
 RtlGetInterruptTimePrecise(
     _Out_ PLARGE_INTEGER PerformanceCounter
@@ -32963,6 +33016,23 @@ RtlQueryUnbiasedInterruptTime(
     _Out_ PLARGE_INTEGER InterruptTime
     );
 #endif
+
+FORCEINLINE
+ULONGLONG
+NTAPI
+RtlBeginReadTickLock(
+    _In_ PULONGLONG TimeUpdateLock // USER_SHARED_DATA->TimeUpdateLock
+    )
+{
+    ULONGLONG result;
+
+    for (result = *TimeUpdateLock; (*TimeUpdateLock & 1) != 0; result = *TimeUpdateLock)
+    {
+        YieldProcessor();
+    }
+
+    return result;
+}
 
 // Time zones
 
@@ -37239,7 +37309,9 @@ RtlRunOnceInitialize(
     );
 
 typedef _Function_class_(RTL_RUN_ONCE_INIT_FN)
-LOGICAL NTAPI RTL_RUN_ONCE_INIT_FN(
+LOGICAL
+NTAPI
+RTL_RUN_ONCE_INIT_FN(
     _Inout_ PRTL_RUN_ONCE RunOnce,
     _Inout_opt_ PVOID Parameter,
     _Inout_opt_ PVOID *Context
@@ -37293,7 +37365,9 @@ RtlEqualWnfChangeStamps(
 
 _Always_(_Post_satisfies_(return == STATUS_NO_MEMORY || return == STATUS_RETRY || return == STATUS_SUCCESS))
 typedef _Function_class_(WNF_USER_CALLBACK)
-NTSTATUS NTAPI WNF_USER_CALLBACK(
+NTSTATUS
+NTAPI
+WNF_USER_CALLBACK(
     _In_ WNF_STATE_NAME StateName,
     _In_ WNF_CHANGE_STAMP ChangeStamp,
     _In_opt_ PWNF_TYPE_ID TypeId,
@@ -49175,6 +49249,23 @@ ZwAcquireCMFViewOwnership(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAcquireCrossVmMutant(
+    _In_ HANDLE CrossVmMutant,
+    _In_ PLARGE_INTEGER Timeout
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwAcquireProcessActivityReference(
+    _Out_ PHANDLE ActivityReferenceHandle,
+    _In_ HANDLE ParentProcessHandle,
+    _Reserved_ PROCESS_ACTIVITY_TYPE Reserved
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwAddAtom(
     _In_reads_bytes_opt_(Length) PCWSTR AtomName,
     _In_ ULONG Length,
@@ -49256,6 +49347,16 @@ ZwAdjustTokenClaimsAndDeviceGroups(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAlertMultipleThreadByThreadId(
+    _In_ PHANDLE MultipleThreadId,
+    _In_ ULONG Count,
+    _In_ PVOID Boost,
+    _In_ ULONG BoostCount
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwAlertResumeThread(
     _In_ HANDLE ThreadHandle,
     _Out_opt_ PULONG PreviousSuspendCount
@@ -49278,6 +49379,14 @@ ZwAlertThreadByThreadId(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwAlertThreadByThreadIdEx(
+    _In_ HANDLE ThreadId,
+    _In_opt_ PRTL_SRWLOCK Lock
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwAllocateLocallyUniqueId(
     _Out_ PLUID Luid
     );
@@ -49287,7 +49396,7 @@ NTSTATUS
 NTAPI
 ZwAllocateReserveObject(
     _Out_ PHANDLE MemoryReserveHandle,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ MEMORY_RESERVE_TYPE Type
     );
 
@@ -49305,7 +49414,7 @@ NTSTATUS
 NTAPI
 ZwAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PSIZE_T NumberOfPages,
+    _Inout_ PULONG_PTR NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
     _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
@@ -49847,9 +49956,9 @@ NTSTATUS
 NTAPI
 ZwConvertBetweenAuxiliaryCounterAndPerformanceCounter(
     _In_ BOOLEAN ConvertAuxiliaryToPerformanceCounter,
-    _In_ PLARGE_INTEGER PerformanceOrAuxiliaryCounterValue,
-    _Out_ PLARGE_INTEGER ConvertedValue,
-    _Out_opt_ PLARGE_INTEGER ConversionError
+    _In_ PULONG64 PerformanceOrAuxiliaryCounterValue,
+    _Out_ PULONG64 ConvertedValue,
+    _Out_opt_ PULONG64 ConversionError
     );
 
 NTSYSCALLAPI
@@ -49866,6 +49975,39 @@ ZwCopyFileChunk(
     _In_opt_ PULONG SourceKey,
     _In_opt_ PULONG DestKey,
     _In_ ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateCpuPartition(
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateCrossVmEvent(
+    _Out_ PHANDLE CrossVmEvent,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG CrossVmEventFlags,
+    _In_ LPCGUID VMID,
+    _In_ LPCGUID ServiceID
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwCreateCrossVmMutant(
+    _Out_ PHANDLE EventHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ ULONG CrossVmEventFlags,
+    _In_ LPCGUID VMID,
+    _In_ LPCGUID ServiceID
     );
 
 NTSYSCALLAPI
@@ -49944,7 +50086,7 @@ NTAPI
 ZwCreateEventPair(
     _Out_ PHANDLE EventPairHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -50000,7 +50142,7 @@ NTAPI
 ZwCreateJobObject(
     _Out_ PHANDLE JobHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -50031,7 +50173,7 @@ NTAPI
 ZwCreateKeyedEvent(
     _Out_ PHANDLE KeyedEventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _Reserved_ ULONG Flags
     );
 
@@ -50084,7 +50226,7 @@ NTAPI
 ZwCreateMutant(
     _Out_ PHANDLE MutantHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ BOOLEAN InitialOwner
     );
 
@@ -50125,7 +50267,7 @@ ZwCreatePartition(
     _In_opt_ HANDLE ParentPartitionHandle,
     _Out_ PHANDLE PartitionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG PreferredNode
     );
 
@@ -50156,7 +50298,7 @@ NTAPI
 ZwCreateProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ParentProcess,
     _In_ BOOLEAN InheritObjectTable,
     _In_opt_ HANDLE SectionHandle,
@@ -50170,7 +50312,7 @@ NTAPI
 ZwCreateProcessEx(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ParentProcess,
     _In_ ULONG Flags, // PROCESS_CREATE_FLAGS_*
     _In_opt_ HANDLE SectionHandle,
@@ -50185,7 +50327,7 @@ NTAPI
 ZwCreateProcessStateChange(
     _Out_ PHANDLE ProcessStateChangeHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
     _In_opt_ _Reserved_ ULONG64 Reserved
     );
@@ -50240,7 +50382,7 @@ NTAPI
 ZwCreateSection(
     _Out_ PHANDLE SectionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PLARGE_INTEGER MaximumSize,
     _In_ ULONG SectionPageProtection,
     _In_ ULONG AllocationAttributes,
@@ -50253,7 +50395,7 @@ NTAPI
 ZwCreateSectionEx(
     _Out_ PHANDLE SectionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PLARGE_INTEGER MaximumSize,
     _In_ ULONG SectionPageProtection,
     _In_ ULONG AllocationAttributes,
@@ -50268,7 +50410,7 @@ NTAPI
 ZwCreateSemaphore(
     _Out_ PHANDLE SemaphoreHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ LONG InitialCount,
     _In_ LONG MaximumCount
     );
@@ -50289,7 +50431,7 @@ NTAPI
 ZwCreateThread(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
     _Out_ PCLIENT_ID ClientId,
     _In_ PCONTEXT ThreadContext,
@@ -50303,7 +50445,7 @@ NTAPI
 ZwCreateThreadEx(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ProcessHandle,
     _In_ PUSER_THREAD_START_ROUTINE StartRoutine,
     _In_opt_ PVOID Argument,
@@ -50320,7 +50462,7 @@ NTAPI
 ZwCreateThreadStateChange(
     _Out_ PHANDLE ThreadStateChangeHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE ThreadHandle,
     _In_opt_ ULONG64 Reserved
     );
@@ -50331,7 +50473,7 @@ NTAPI
 ZwCreateTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ TIMER_TYPE TimerType
     );
 
@@ -50341,7 +50483,7 @@ NTAPI
 ZwCreateTimer2(
     _Out_ PHANDLE TimerHandle,
     _In_opt_ PVOID Reserved1,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG Attributes, // TIMER_TYPE
     _In_ ACCESS_MASK DesiredAccess
     );
@@ -50424,11 +50566,11 @@ ZwCreateUserProcess(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK ProcessDesiredAccess,
     _In_ ACCESS_MASK ThreadDesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ProcessObjectAttributes,
-    _In_opt_ POBJECT_ATTRIBUTES ThreadObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ProcessObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ThreadObjectAttributes,
     _In_ ULONG ProcessFlags, // PROCESS_CREATE_FLAGS_*
     _In_ ULONG ThreadFlags, // THREAD_CREATE_FLAGS_*
-    _In_opt_ PVOID ProcessParameters, // PRTL_USER_PROCESS_PARAMETERS
+    _In_opt_ PRTL_USER_PROCESS_PARAMETERS ProcessParameters,
     _Inout_ PPS_CREATE_INFO CreateInfo,
     _In_opt_ PPS_ATTRIBUTE_LIST AttributeList
     );
@@ -50472,7 +50614,7 @@ NTAPI
 ZwCreateWorkerFactory(
     _Out_ PHANDLE WorkerFactoryHandleReturn,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ HANDLE CompletionPortHandle,
     _In_ HANDLE WorkerProcessHandle,
     _In_ PVOID StartRoutine,
@@ -50595,6 +50737,17 @@ ZwDeviceIoControlFile(
     _In_ ULONG InputBufferLength,
     _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
     _In_ ULONG OutputBufferLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwDirectGraphicsCall(
+    _In_ ULONG InputBufferLength,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_writes_bytes_opt_(OutputBufferLength) PVOID OutputBuffer,
+    _Out_ PULONG ReturnLength
     );
 
 NTSYSCALLAPI
@@ -50842,7 +50995,7 @@ NTSTATUS
 NTAPI
 ZwFreeUserPhysicalPages(
     _In_ HANDLE ProcessHandle,
-    _Inout_ PSIZE_T NumberOfPages,
+    _Inout_ PULONG_PTR NumberOfPages,
     _In_reads_(*NumberOfPages) PULONG_PTR UserPfnArray
     );
 
@@ -51172,7 +51325,7 @@ ZwLoadKeyEx(
     _In_ POBJECT_ATTRIBUTES TargetKey,
     _In_ POBJECT_ATTRIBUTES SourceFile,
     _In_ ULONG Flags,
-    _In_opt_ HANDLE TrustClassKey, // this and below were added on Win10
+    _In_opt_ HANDLE TrustClassKey,
     _In_opt_ HANDLE Event,
     _In_opt_ ACCESS_MASK DesiredAccess,
     _Out_opt_ PHANDLE RootHandle,
@@ -51402,6 +51555,15 @@ ZwNotifyChangeSession(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwOpenCpuPartition(
+    _Out_ PHANDLE CpuPartitionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwOpenDirectoryObject(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -51434,7 +51596,7 @@ NTAPI
 ZwOpenEventPair(
     _Out_ PHANDLE EventPairHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51464,7 +51626,7 @@ NTAPI
 ZwOpenJobObject(
     _Out_ PHANDLE JobHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51482,7 +51644,7 @@ NTAPI
 ZwOpenKeyedEvent(
     _Out_ PHANDLE KeyedEventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51522,7 +51684,7 @@ NTAPI
 ZwOpenMutant(
     _Out_ PHANDLE MutantHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51549,7 +51711,7 @@ NTAPI
 ZwOpenPartition(
     _Out_ PHANDLE PartitionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51568,7 +51730,7 @@ NTAPI
 ZwOpenProcess(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PCLIENT_ID ClientId
     );
 
@@ -51608,7 +51770,7 @@ NTAPI
 ZwOpenSection(
     _Out_ PHANDLE SectionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51617,7 +51779,7 @@ NTAPI
 ZwOpenSemaphore(
     _Out_ PHANDLE SemaphoreHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51644,7 +51806,7 @@ NTAPI
 ZwOpenThread(
     _Out_ PHANDLE ThreadHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ PCLIENT_ID ClientId
     );
 
@@ -51675,7 +51837,7 @@ NTAPI
 ZwOpenTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 NTSYSCALLAPI
@@ -51846,7 +52008,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwQueryAuxiliaryCounterFrequency(
-    _Out_ PLARGE_INTEGER AuxiliaryCounterFrequency
+    _Out_ PULONG64 AuxiliaryCounterFrequency
     );
 
 NTSYSCALLAPI
@@ -52294,6 +52456,18 @@ ZwQuerySecurityObject(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwQuerySecurityPolicy(
+    _In_ PCUNICODE_STRING Policy,
+    _In_ PCUNICODE_STRING KeyName,
+    _In_ PCUNICODE_STRING ValueName,
+    _In_ SECURE_SETTING_VALUE_TYPE ValueType,
+    _Out_writes_bytes_opt_(*ValueSize) PVOID Value,
+    _Inout_ PULONG ValueSize
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwQuerySemaphore(
     _In_ HANDLE SemaphoreHandle,
     _In_ SEMAPHORE_INFORMATION_CLASS SemaphoreInformationClass,
@@ -52327,8 +52501,8 @@ NTAPI
 ZwQuerySystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
-    _Out_writes_bytes_opt_(*ValueLength) PVOID Value,
-    _Inout_ PULONG ValueLength,
+    _Out_writes_bytes_opt_(*BufferLength) PVOID Buffer,
+    _Inout_ PULONG BufferLength,
     _Out_opt_ PULONG Attributes // EFI_VARIABLE_*
     );
 
@@ -52444,7 +52618,7 @@ NTSTATUS
 NTAPI
 ZwQueueApcThread(
     _In_ HANDLE ThreadHandle,
-    _In_ PPS_APC_ROUTINE ApcRoutine,
+    _In_ PPS_APC_ROUTINE ApcRoutine, // RtlDispatchAPC
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
@@ -52455,8 +52629,8 @@ NTSTATUS
 NTAPI
 ZwQueueApcThreadEx(
     _In_ HANDLE ThreadHandle,
-    _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject // SPECIAL_USER_APC
-    _In_ PPS_APC_ROUTINE ApcRoutine,
+    _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject // QUEUE_USER_APC_SPECIAL_USER_APC
+    _In_ PPS_APC_ROUTINE ApcRoutine, // RtlDispatchAPC
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
@@ -52469,7 +52643,7 @@ ZwQueueApcThreadEx2(
     _In_ HANDLE ThreadHandle,
     _In_opt_ HANDLE ReserveHandle, // NtAllocateReserveObject
     _In_ ULONG ApcFlags, // QUEUE_USER_APC_FLAGS
-    _In_ PPS_APC_ROUTINE ApcRoutine,
+    _In_ PPS_APC_ROUTINE ApcRoutine, // RtlDispatchAPC
     _In_opt_ PVOID ApcArgument1,
     _In_opt_ PVOID ApcArgument2,
     _In_opt_ PVOID ApcArgument3
@@ -53018,6 +53192,14 @@ ZwSetEventBoostPriority(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetEventEx(
+    _In_ HANDLE ThreadId,
+    _In_opt_ PRTL_SRWLOCK Lock
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwSetHighEventPair(
     _In_ HANDLE EventPairHandle
     );
@@ -53032,10 +53214,23 @@ ZwSetHighWaitLowEventPair(
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
+ZwSetInformationCpuPartition(
+    _In_ HANDLE CpuPartitionHandle,
+    _In_ ULONG CpuPartitionInformationClass,
+    _In_reads_bytes_(CpuPartitionInformationLength) PVOID CpuPartitionInformation,
+    _In_ ULONG CpuPartitionInformationLength,
+    _Reserved_ PVOID,
+    _Reserved_ ULONG,
+    _Reserved_ ULONG
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
 ZwSetInformationDebugObject(
     _In_ HANDLE DebugObjectHandle,
     _In_ DEBUGOBJECTINFOCLASS DebugObjectInformationClass,
-    _In_ PVOID DebugInformation,
+    _In_reads_bytes_(DebugInformationLength) PVOID DebugInformation,
     _In_ ULONG DebugInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
@@ -53291,8 +53486,8 @@ NTAPI
 ZwSetSystemEnvironmentValueEx(
     _In_ PUNICODE_STRING VariableName,
     _In_ PCGUID VendorGuid,
-    _In_reads_bytes_opt_(ValueLength) PVOID Value,
-    _In_ ULONG ValueLength, // 0 = delete variable
+    _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength, // 0 = delete variable
     _In_ ULONG Attributes // EFI_VARIABLE_*
     );
 
@@ -53695,7 +53890,7 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwWaitForAlertByThreadId(
-    _In_ PVOID Address,
+    _In_opt_ PVOID Address,
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
@@ -53780,6 +53975,52 @@ NTSTATUS
 NTAPI
 ZwWorkerFactoryWorkerReady(
     _In_ HANDLE WorkerFactoryHandle
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWow64QueryInformationProcess64(
+    _In_ HANDLE ProcessHandle,
+    _In_ PROCESSINFOCLASS ProcessInformationClass,
+    _Out_writes_bytes_(ProcessInformationLength) PVOID ProcessInformation,
+    _In_ ULONG ProcessInformationLength,
+    _Out_opt_ PULONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWow64QueryVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
+    _In_ ULONGLONG MemoryInformationLength,
+    _Out_opt_ PULONGLONG ReturnLength
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWow64ReadVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONGLONG BufferSize,
+    _Out_opt_ PULONGLONG NumberOfBytesRead,
+    _In_ ULONG Flags
+    );
+
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+ZwWow64WriteVirtualMemory64(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _In_reads_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONGLONG BufferSize,
+    _Out_opt_ PULONGLONG NumberOfBytesWritten
     );
 
 NTSYSCALLAPI
@@ -55949,39 +56190,39 @@ typedef struct _SESSIONIDW
 // private
 typedef enum _WINSTATIONINFOCLASS
 {
-    WinStationCreateData, // WINSTATIONCREATE
-    WinStationConfiguration, // WINSTACONFIGWIRE + USERCONFIG
-    WinStationPdParams, // PDPARAMS
-    WinStationWd, // WDCONFIG
-    WinStationPd, // PDCONFIG2 + PDPARAMS
-    WinStationPrinter, // Not supported.
-    WinStationClient, // WINSTATIONCLIENT
-    WinStationModules,
-    WinStationInformation, // WINSTATIONINFORMATION
-    WinStationTrace,
-    WinStationBeep,
-    WinStationEncryptionOff,
+    WinStationCreateData, // q: WINSTATIONCREATE
+    WinStationConfiguration, // qs: WINSTACONFIGWIRE + USERCONFIG
+    WinStationPdParams, // qs: PDPARAMS
+    WinStationWd, // q: WDCONFIG
+    WinStationPd, // q: PDCONFIG2 + PDPARAMS
+    WinStationPrinter, // qs: Not supported.
+    WinStationClient, // q: WINSTATIONCLIENT
+    WinStationModules, // q:
+    WinStationInformation, // q: WINSTATIONINFORMATION
+    WinStationTrace, // qs:
+    WinStationBeep, // s: // 10
+    WinStationEncryptionOff, // s:
     WinStationEncryptionPerm,
-    WinStationNtSecurity, // s; (open secure desktop ctrl+alt+del)
-    WinStationUserToken, // WINSTATIONUSERTOKEN
+    WinStationNtSecurity, // s: (open secure desktop ctrl+alt+del)
+    WinStationUserToken, // q: WINSTATIONUSERTOKEN
     WinStationUnused1,
-    WinStationVideoData, // WINSTATIONVIDEODATA
-    WinStationInitialProgram, // s; (set current process as initial program)
-    WinStationCd, // CDCONFIG
-    WinStationSystemTrace,
-    WinStationVirtualData,
+    WinStationVideoData, // q: WINSTATIONVIDEODATA
+    WinStationInitialProgram, // s: (set current process as initial program)
+    WinStationCd, // q: CDCONFIG
+    WinStationSystemTrace, // qs:
+    WinStationVirtualData, // q: // 20
     WinStationClientData, // WINSTATIONCLIENTDATA
-    WinStationSecureDesktopEnter,
-    WinStationSecureDesktopExit,
-    WinStationLoadBalanceSessionTarget, // ULONG
-    WinStationLoadIndicator, // WINSTATIONLOADINDICATORDATA
-    WinStationShadowInfo, // WINSTATIONSHADOW
+    WinStationSecureDesktopEnter, // qs:
+    WinStationSecureDesktopExit, // qs:
+    WinStationLoadBalanceSessionTarget, // q: ULONG
+    WinStationLoadIndicator, // q: WINSTATIONLOADINDICATORDATA
+    WinStationShadowInfo, // qs: WINSTATIONSHADOW
     WinStationDigProductId, // WINSTATIONPRODID
     WinStationLockedState, // BOOL
     WinStationRemoteAddress, // WINSTATIONREMOTEADDRESS
-    WinStationIdleTime, // ULONG
+    WinStationIdleTime, // ULONG // 30
     WinStationLastReconnectType, // ULONG
-    WinStationDisallowAutoReconnect, // BOOLEAN
+    WinStationDisallowAutoReconnect, // qs: BOOLEAN
     WinStationMprNotifyInfo,
     WinStationExecSrvSystemPipe, // WCHAR[48]
     WinStationSmartCardAutoLogon, // BOOLEAN
@@ -55989,11 +56230,13 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationReconnectedFromId, // ULONG
     WinStationEffectsPolicy, // ULONG
     WinStationType, // ULONG
-    WinStationInformationEx, // WINSTATIONINFORMATIONEX
+    WinStationInformationEx, // WINSTATIONINFORMATIONEX // 40
     WinStationValidationInfo
 } WINSTATIONINFOCLASS;
 
-// Retrieves general information on the type of terminal server session (protocol) to which the session belongs.
+/**
+ * Retrieves general information used to create the terminal server session (protocol) to which the station belongs.
+ */
 typedef struct _WINSTATIONCREATE
 {
     ULONG fEnableWinStation : 1;
@@ -56567,7 +56810,7 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
     ULONG NumberOfThreads;
     LARGE_INTEGER SpareLi1;
     LARGE_INTEGER SpareLi2;
-    LARGE_INTEGER SpareLi3;
+    LARGE_INTEGER CycleTime;
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
@@ -56577,7 +56820,7 @@ typedef struct _TS_SYS_PROCESS_INFORMATION
     ULONG InheritedFromUniqueProcessId;
     ULONG HandleCount;
     ULONG SessionId;
-    ULONG SpareUl3;
+    ULONG UniqueProcessKey;
     SIZE_T PeakVirtualSize;
     SIZE_T VirtualSize;
     ULONG PageFaultCount;

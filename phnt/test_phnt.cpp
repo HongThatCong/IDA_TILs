@@ -8,7 +8,7 @@
 #include "enums_phnt.h"
 #include <phnt.h>
 
-#define TEST
+// #define TEST
 
 #ifdef TEST
 
@@ -29,8 +29,7 @@ int main()
                 pszMsg,
                 cbLen,
                 nullptr,
-                nullptr
-                );
+                nullptr);
     return 0;
 }
 
