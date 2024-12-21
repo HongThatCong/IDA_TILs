@@ -15,6 +15,7 @@
 #pragma clang diagnostic ignored "-Wreserved-identifier"
 #pragma clang diagnostic ignored "-Wreserved-macro-identifier"
 #pragma clang diagnostic ignored "-Wextra-semi"
+#pragma clang diagnostic ignored "-Wmultichar"
 
 // clang don't recognize some #pragma of C++Builder
 #pragma clang diagnostic ignored "-Wunknown-pragmas"
@@ -63,6 +64,11 @@
 #include <lines.hpp>
 #include <llong.hpp>
 #include <loader.hpp>
+
+#ifdef __SDK90SP1__
+    #include <libfuncs.hpp>
+#endif
+
 #include <md5.h>
 #include <moves.hpp>
 #include <nalt.hpp>

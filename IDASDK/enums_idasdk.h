@@ -1943,7 +1943,7 @@ enum LROEF
     LROEF_CPS_RANGE = 0x00000001,
 };
 
-enum class BWN_7x_83
+enum class BWN_7x_83 : unsigned long long
 {
     BWN_UNKNOWN = -1ULL,
     BWN_EXPORTS = 0ULL,
@@ -2073,7 +2073,7 @@ enum class IWID_7x_83 : unsigned long long
     IWID_IDAMEMOS = (IWID_DISASMS | IWID_DUMPS),
 };
 
-enum class BWN_84_9x
+enum class BWN_84_9x : unsigned long long
 {
     BWN_UNKNOWN = -1ULL,
     BWN_EXPORTS = 0ULL,
@@ -2131,6 +2131,7 @@ enum class BWN_84_9x
     BWN_SCRIPTS_CSR = 56,
     BWN_BOOKMARKS = 57,
     BWN_TILIST = 58,
+    BWN_TIL_VIEW = 59,  // 9.0 SP1
     BWN_STACK = BWN_CALL_STACK,
     BWN_DISASMS = BWN_DISASM,
     BWN_DUMPS = BWN_DUMP,
@@ -2193,6 +2194,7 @@ enum class IWID_84_9x : unsigned long long
     IWID_SCRIPTS_CSR = (1ULL << (unsigned long long)BWN_84_9x::BWN_SCRIPTS_CSR),
     IWID_BOOKMARKS = (1ULL << (unsigned long long)BWN_84_9x::BWN_BOOKMARKS),
     IWID_TILIST = (1ULL << (unsigned long long)BWN_84_9x::BWN_TILIST),
+    IWID_TIL_VIEW = (1ULL << (unsigned long long)BWN_84_9x::BWN_TIL_VIEW),  // 9.0 SP1
     IWID_IDAMEMOS = (IWID_DISASM | IWID_DUMP),
 
     IWID_ALL = 0xFFFFFFFFFFFFFFFFULL,
@@ -2706,7 +2708,7 @@ enum COLOR_ADDR_SIZE
 // Line prefix colors
 enum COLOR_PFX
 {
-    COLOR_DEFAULT = 0x01,
+    COLOR_DEFAULT_ = 0x01,
     COLOR_SELECTED = 0x02,
     COLOR_LIBFUNC = 0x03,
     COLOR_REGFUNC = 0x04,
@@ -4195,6 +4197,7 @@ enum PT_F
     PT_REPLACE = 0x0200,
     PT_RAWARGS = 0x0400,
     PT_RELAXED = 0x1000,
+    PT_SEMICOLON = 0x4000,  // 9.0 SP1
 };
 
 enum PRTYPE
@@ -4620,7 +4623,45 @@ enum XREF
     XREF_DATA = 0x02,
 };
 
-// hexrays.hpp, it's almost over at last :)
+#pragma region libfuncs.hpp of 9.0 SP1
+
+enum idasgn_header_ostype
+{
+    OSTYPE_MSDOS = 0x0001,
+    OSTYPE_WIN = 0x0002,
+    OSTYPE_OS2 = 0x0004,
+    OSTYPE_NETW = 0x0008,
+    OSTYPE_UNIX = 0x0010,
+    OSTYPE_OTHER = 0x0020,
+};
+
+enum idasgn_header_apptype
+{
+    APPT_CONSOLE = 0x0001,
+    APPT_GRAPHIC = 0x0002,
+    APPT_PROGRAM = 0x0004,
+    APPT_LIBRARY = 0x0008,
+    APPT_DRIVER = 0x0010,
+    APPT_1THREAD = 0x0020,
+    APPT_MTHREAD = 0x0040,
+    APPT_16BIT = 0x0080,
+    APPT_32BIT = 0x0100,
+    APPT_64BIT = 0x0200,
+};
+
+enum idasgn_header_flags
+{
+    LS_STARTUP = 0x0001,
+    LS_CTYPE = 0x0002,
+    LS_CTYPE2 = 0x0004,
+    LS_CTYPE_ALT = 0x0008,
+    LS_ZIP = 0x0010,
+    LS_CTYPE_3V = 0x0020,
+};
+
+#pragma endregion libfuncs.hpp of 9.0 SP1
+
+#pragma region hexrays.hpp
 
 enum VLR
 {
@@ -5128,6 +5169,8 @@ enum VDUI
 struct mba_t;
 #define mbl_array_t mba_t
 #endif
+
+#pragma endregion hexrays.hpp
 
 // Done :D
 
