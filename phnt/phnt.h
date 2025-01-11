@@ -328,7 +328,9 @@ extern "C" {
 #define NOTHING
 #endif
 
+//
 // Basic types
+//
 
 typedef struct _QUAD
 {
@@ -352,7 +354,9 @@ typedef ULONG *PLOGICAL;
 typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 typedef NTSTATUS *PNTSTATUS;
 
+//
 // Cardinal types
+//
 
 typedef char CCHAR;
 typedef short CSHORT;
@@ -365,8 +369,11 @@ typedef CLONG *PCLONG;
 typedef PCSTR PCSZ;
 
 typedef PVOID* PPVOID;
+typedef CONST VOID *PCVOID;
 
+//
 // Specific
+//
 
 typedef UCHAR KIRQL, *PKIRQL;
 typedef LONG KPRIORITY, *PKPRIORITY;
@@ -384,7 +391,9 @@ typedef struct _ULARGE_INTEGER_128
     ULONGLONG QuadPart[2];
 } ULARGE_INTEGER_128, *PULARGE_INTEGER_128;
 
+//
 // Limits
+//
 
 #define MINCHAR     0x80        // winnt
 #define MAXCHAR     0x7f        // winnt
@@ -396,7 +405,9 @@ typedef struct _ULARGE_INTEGER_128
 #define MAXUSHORT   0xffff      // winnt
 #define MAXULONG    0xffffffff  // winnt
 
+//
 // NT status macros
+//
 
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #define NT_INFORMATION(Status) ((((ULONG)(Status)) >> 30) == 1)
@@ -413,7 +424,9 @@ typedef struct _ULARGE_INTEGER_128
 #define NT_NTWIN32(Status) (NT_FACILITY(Status) == FACILITY_NTWIN32)
 #define WIN32_FROM_NTSTATUS(Status) (((ULONG)(Status)) & 0xffff)
 
+//
 // Functions
+//
 
 #ifndef _WIN64
 #define FASTCALL __fastcall
@@ -421,7 +434,9 @@ typedef struct _ULARGE_INTEGER_128
 #define FASTCALL
 #endif
 
+//
 // Synchronization enumerations
+//
 
 typedef enum _EVENT_TYPE
 {
@@ -444,7 +459,9 @@ typedef enum _WAIT_TYPE
     WaitDpc,
 } WAIT_TYPE;
 
+//
 // Strings
+//
 
 typedef struct _STRING
 {
@@ -482,7 +499,9 @@ extern const DECLSPEC_SELECTANY UNICODE_STRING _var = RTL_CONSTANT_STRING(_str)
 WCHAR _var ## _buffer[_size]; \
 UNICODE_STRING _var = { 0, (_size) * sizeof(WCHAR) , _var ## _buffer }
 
+//
 // Balanced tree node
+//
 
 #define RTL_BALANCED_NODE_RESERVED_PARENT_MASK 3
 
@@ -508,7 +527,9 @@ typedef struct _RTL_BALANCED_NODE
 #define RTL_BALANCED_NODE_GET_PARENT_POINTER(Node) \
     ((PRTL_BALANCED_NODE)((Node)->ParentValue & ~RTL_BALANCED_NODE_RESERVED_PARENT_MASK))
 
+//
 // Portability
+//
 
 typedef struct _SINGLE_LIST_ENTRY32
 {
@@ -535,7 +556,9 @@ typedef struct _STRING64
 typedef STRING64 UNICODE_STRING64, *PUNICODE_STRING64;
 typedef STRING64 ANSI_STRING64, *PANSI_STRING64;
 
+//
 // Object attributes
+//
 
 #define OBJ_PROTECT_CLOSE                   0x00000001L
 #define OBJ_INHERIT                         0x00000002L
@@ -588,7 +611,9 @@ typedef const OBJECT_ATTRIBUTES *PCOBJECT_ATTRIBUTES;
 #define OBJ_NAME_PATH_SEPARATOR ((WCHAR)L'\\')
 #define OBJ_NAME_ALTPATH_SEPARATOR ((WCHAR)L'/')
 
+//
 // Portability
+//
 
 typedef struct _OBJECT_ATTRIBUTES64
 {
@@ -614,7 +639,9 @@ typedef struct _OBJECT_ATTRIBUTES32
 
 typedef const OBJECT_ATTRIBUTES32 *PCOBJECT_ATTRIBUTES32;
 
+//
 // Product types
+//
 
 typedef enum _NT_PRODUCT_TYPE
 {
@@ -645,7 +672,9 @@ typedef enum _SUITE_TYPE
     MaxSuiteType
 } SUITE_TYPE;
 
+//
 // Specific
+//
 
 typedef struct _CLIENT_ID
 {
@@ -693,12 +722,20 @@ typedef struct _KSYSTEM_TIME
 #define ClearFlag(_F, _SF) ((_F) &= ~(_SF))
 #endif
 
-#endif  // _NTDEF_
+#endif
 
 #if defined(_WIN64)
 #define POINTER_ALIGNMENT DECLSPEC_ALIGN(8)
 #else
 #define POINTER_ALIGNMENT
+#endif
+
+#ifndef DECLSPEC_NOALIAS
+#if _MSC_VER < 1900
+#define DECLSPEC_NOALIAS
+#else
+#define DECLSPEC_NOALIAS __declspec(noalias)
+#endif
 #endif
 
 #endif  // _PHNT_NTDEF_H
@@ -1551,9 +1588,6 @@ typedef struct _PS_MITIGATION_AUDIT_OPTIONS_MAP
     ULONG_PTR Map[3]; // 2 < 20H1
 } PS_MITIGATION_AUDIT_OPTIONS_MAP, *PPS_MITIGATION_AUDIT_OPTIONS_MAP;
 
-#define PS_SYSTEM_DLL_INIT_BLOCK_V1 0x0F0
-#define PS_SYSTEM_DLL_INIT_BLOCK_V2 0x128
-
 // private
 typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 {
@@ -1590,6 +1624,14 @@ typedef struct _PS_SYSTEM_DLL_INIT_BLOCK
 #if (PHNT_VERSION >= PHNT_THRESHOLD)
 NTSYSAPI PS_SYSTEM_DLL_INIT_BLOCK LdrSystemDllInitBlock;
 #endif
+
+#define PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 \
+    RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, MitigationAuditOptionsMap)
+#define PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 \
+    RTL_SIZEOF_THROUGH_FIELD(PS_SYSTEM_DLL_INIT_BLOCK, ScpArm64EcCfgCheckESFunction)
+
+//static_assert(PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 == 240, "PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V1 must equal 240");
+//static_assert(PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 == 296, "PS_SYSTEM_DLL_INIT_BLOCK_SIZE_V2 must equal 296");
 
 // rev see also MEMORY_IMAGE_EXTENSION_INFORMATION
 typedef struct _RTL_SCPCFG_NTDLL_EXPORTS
@@ -2156,6 +2198,7 @@ LdrRemoveDllDirectory(
 #endif
 
 // rev
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -2165,6 +2208,7 @@ LdrShutdownProcess(
     );
 
 // rev
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -2358,7 +2402,7 @@ NTAPI
 LdrFlushAlternateResourceModules(
     VOID
     );
-    
+
 // rev
 NTSYSAPI
 NTSTATUS
@@ -2374,8 +2418,8 @@ LdrDllRedirectionCallback(
 
 // rev
 NTSYSAPI
-VOID 
-NTAPI 
+VOID
+NTAPI
 LdrSetDllManifestProber(
     _In_ PVOID Routine
     );
@@ -2386,12 +2430,12 @@ NTSYSAPI BOOLEAN LdrpChildNtdll; // DATA export
 
 // rev
 NTSYSAPI
-VOID 
-NTAPI 
+VOID
+NTAPI
 LdrpResGetMappingSize(
-    _In_ PVOID BaseAddress, 
-    _Out_ PSIZE_T Size, 
-    _In_ ULONG Flags, 
+    _In_ PVOID BaseAddress,
+    _Out_ PSIZE_T Size,
+    _In_ ULONG Flags,
     _In_ BOOLEAN GetFileSizeFromLoadAsDataTable
     );
 
@@ -2646,7 +2690,13 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
 } EFI_DRIVER_ENTRY_LIST, *PEFI_DRIVER_ENTRY_LIST;
 
 #if (PHNT_VERSION >= PHNT_WINXP)
-
+/**
+ * The NtAddBootEntry routine adds a new boot entry to the system boot configuration.
+ *
+ * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the boot entry to be added.
+ * @param Id A pointer to a variable that receives the identifier of the new boot entry.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2655,6 +2705,12 @@ NtAddBootEntry(
     _Out_opt_ PULONG Id
     );
 
+/**
+ * The NtDeleteBootEntry routine deletes an existing boot entry from the system boot configuration.
+ *
+ * @param Id The identifier of the boot entry to be deleted.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2662,6 +2718,12 @@ NtDeleteBootEntry(
     _In_ ULONG Id
     );
 
+/**
+ * The NtModifyBootEntry routine modifies an existing boot entry in the system boot configuration.
+ *
+ * @param BootEntry A pointer to a BOOT_ENTRY structure that specifies the new boot entry information.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2669,6 +2731,13 @@ NtModifyBootEntry(
     _In_ PBOOT_ENTRY BootEntry
     );
 
+/**
+ * The NtEnumerateBootEntries routine retrieves information about all boot entries in the system boot configuration.
+ *
+ * @param Buffer A pointer to a buffer that receives the boot entries information.
+ * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2677,6 +2746,13 @@ NtEnumerateBootEntries(
     _Inout_ PULONG BufferLength
     );
 
+/**
+ * The NtQueryBootEntryOrder routine retrieves the current boot entry order.
+ *
+ * @param Ids A pointer to a buffer that receives the identifiers of the boot entries in the current boot order.
+ * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2685,6 +2761,13 @@ NtQueryBootEntryOrder(
     _Inout_ PULONG Count
     );
 
+/**
+ * The NtSetBootEntryOrder routine sets the boot entry order.
+ *
+ * @param Ids A pointer to a buffer that specifies the identifiers of the boot entries in the desired boot order.
+ * @param Count The number of entries in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2693,6 +2776,13 @@ NtSetBootEntryOrder(
     _In_ ULONG Count
     );
 
+/**
+ * The NtQueryBootOptions routine retrieves the current boot options.
+ *
+ * @param BootOptions A pointer to a buffer that receives the boot options.
+ * @param BootOptionsLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2701,6 +2791,13 @@ NtQueryBootOptions(
     _Inout_ PULONG BootOptionsLength
     );
 
+/**
+ * The NtSetBootOptions routine sets the boot options.
+ *
+ * @param BootOptions A pointer to a BOOT_OPTIONS structure that specifies the new boot options.
+ * @param FieldsToChange A bitmask that specifies which fields in the BOOT_OPTIONS structure are to be changed.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2709,6 +2806,15 @@ NtSetBootOptions(
     _In_ ULONG FieldsToChange
     );
 
+/**
+ * The NtTranslateFilePath routine translates a file path from one format to another.
+ *
+ * @param InputFilePath A pointer to a FILE_PATH structure that specifies the input file path.
+ * @param OutputType The type of the output file path.
+ * @param OutputFilePath A pointer to a buffer that receives the translated file path.
+ * @param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2719,6 +2825,13 @@ NtTranslateFilePath(
     _Inout_opt_ PULONG OutputFilePathLength
     );
 
+/**
+ * The NtAddDriverEntry routine adds a new driver entry to the system boot configuration.
+ *
+ * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the driver entry to be added.
+ * @param Id A pointer to a variable that receives the identifier of the new driver entry.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2727,6 +2840,12 @@ NtAddDriverEntry(
     _Out_opt_ PULONG Id
     );
 
+/**
+ * The NtDeleteDriverEntry routine deletes an existing driver entry from the system boot configuration.
+ *
+ * @param Id The identifier of the driver entry to be deleted.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2734,6 +2853,12 @@ NtDeleteDriverEntry(
     _In_ ULONG Id
     );
 
+/**
+ * The NtModifyDriverEntry routine modifies an existing driver entry in the system boot configuration.
+ *
+ * @param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the new driver entry information.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2741,6 +2866,13 @@ NtModifyDriverEntry(
     _In_ PEFI_DRIVER_ENTRY DriverEntry
     );
 
+/**
+ * The NtEnumerateDriverEntries routine retrieves information about all driver entries in the system boot configuration.
+ *
+ * @param Buffer A pointer to a buffer that receives the driver entries information.
+ * @param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2749,6 +2881,13 @@ NtEnumerateDriverEntries(
     _Inout_ PULONG BufferLength
     );
 
+/**
+ * The NtQueryDriverEntryOrder routine retrieves the current driver entry order.
+ *
+ * @param Ids A pointer to a buffer that receives the identifiers of the driver entries in the current driver order.
+ * @param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2757,6 +2896,13 @@ NtQueryDriverEntryOrder(
     _Inout_ PULONG Count
     );
 
+/**
+ * The NtSetDriverEntryOrder routine sets the driver entry order.
+ *
+ * @param Ids A pointer to a buffer that specifies the identifiers of the driver entries in the desired driver order.
+ * @param Count The number of entries in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2764,7 +2910,6 @@ NtSetDriverEntryOrder(
     _In_reads_(Count) PULONG Ids,
     _In_ ULONG Count
     );
-
 #endif
 
 typedef enum _FILTER_BOOT_OPTION_OPERATION
@@ -2776,7 +2921,16 @@ typedef enum _FILTER_BOOT_OPTION_OPERATION
 } FILTER_BOOT_OPTION_OPERATION;
 
 #if (PHNT_VERSION >= PHNT_WIN8)
-
+/**
+ * The NtFilterBootOption routine filters boot options based on the specified operation, object type, and element type.
+ *
+ * @param FilterOperation The operation to be performed on the boot option. This can be one of the values from the FILTER_BOOT_OPTION_OPERATION enumeration.
+ * @param ObjectType The type of the object to be filtered.
+ * @param ElementType The type of the element within the object to be filtered.
+ * @param Data A pointer to a buffer that contains the data to be used in the filter operation. This parameter is optional and can be NULL.
+ * @param DataSize The size, in bytes, of the data buffer pointed to by the Data parameter.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2787,7 +2941,6 @@ NtFilterBootOption(
     _In_reads_bytes_opt_(DataSize) PVOID Data,
     _In_ ULONG DataSize
     );
-
 #endif
 
 //
@@ -2968,10 +3121,20 @@ NtQueryEvent(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Event Pair
+//
 
 #define EVENT_PAIR_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE)
 
+/**
+ * The NtCreateEventPair routine creates an event pair object and opens a handle to the object with the specified desired access.
+ *
+ * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2981,6 +3144,14 @@ NtCreateEventPair(
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtOpenEventPair routine opens a handle to an existing event pair object.
+ *
+ * @param EventPairHandle A pointer to a variable that receives the event pair object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the event pair object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2990,6 +3161,12 @@ NtOpenEventPair(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtSetLowEventPair routine sets the low event in an event pair to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2997,6 +3174,12 @@ NtSetLowEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtSetHighEventPair routine sets the high event in an event pair to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3004,6 +3187,12 @@ NtSetHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtWaitLowEventPair routine waits for the low event in an event pair to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3011,6 +3200,12 @@ NtWaitLowEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtWaitHighEventPair routine waits for the high event in an event pair to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3018,6 +3213,12 @@ NtWaitHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtSetLowWaitHighEventPair routine sets the low event in an event pair to the signaled state and waits for the high event to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3025,6 +3226,12 @@ NtSetLowWaitHighEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+/**
+ * The NtSetHighWaitLowEventPair routine sets the high event in an event pair to the signaled state and waits for the low event to be set to the signaled state.
+ *
+ * @param EventPairHandle A handle to the event pair object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3032,7 +3239,9 @@ NtSetHighWaitLowEventPair(
     _In_ HANDLE EventPairHandle
     );
 
+//
 // Mutant
+//
 
 #ifndef MUTANT_QUERY_STATE
 #define MUTANT_QUERY_STATE 0x0001
@@ -3048,6 +3257,9 @@ typedef enum _MUTANT_INFORMATION_CLASS
     MutantOwnerInformation // MUTANT_OWNER_INFORMATION
 } MUTANT_INFORMATION_CLASS;
 
+/**
+ * The MUTANT_BASIC_INFORMATION structure contains basic information about a mutant object.
+ */
 typedef struct _MUTANT_BASIC_INFORMATION
 {
     LONG CurrentCount;
@@ -3055,11 +3267,24 @@ typedef struct _MUTANT_BASIC_INFORMATION
     BOOLEAN AbandonedState;
 } MUTANT_BASIC_INFORMATION, *PMUTANT_BASIC_INFORMATION;
 
+/**
+ * The MUTANT_OWNER_INFORMATION structure contains information about the owner of a mutant object.
+ */
 typedef struct _MUTANT_OWNER_INFORMATION
 {
     CLIENT_ID ClientId;
 } MUTANT_OWNER_INFORMATION, *PMUTANT_OWNER_INFORMATION;
 
+/**
+ * The NtCreateMutant routine creates a mutant object, sets the initial state of the mutant to the specified value,
+ * and opens a handle to the object with the specified desired access.
+ *
+ * @param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3070,6 +3295,14 @@ NtCreateMutant(
     _In_ BOOLEAN InitialOwner
     );
 
+/**
+ * The NtOpenMutant routine opens a handle to an existing mutant object.
+ *
+ * @param MutantHandle A pointer to a variable that receives the mutant object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3079,6 +3312,13 @@ NtOpenMutant(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtReleaseMutant routine releases ownership of a mutant object.
+ *
+ * @param MutantHandle A handle to the mutant object.
+ * @param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3087,6 +3327,16 @@ NtReleaseMutant(
     _Out_opt_ PLONG PreviousCount
     );
 
+/**
+ * The NtQueryMutant routine retrieves information about a mutant object.
+ *
+ * @param MutantHandle A handle to the mutant object.
+ * @param MutantInformationClass The type of information to be retrieved.
+ * @param MutantInformation A pointer to a buffer that receives the requested information.
+ * @param MutantInformationLength The size of the buffer pointed to by MutantInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3098,7 +3348,9 @@ NtQueryMutant(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Semaphore
+//
 
 #ifndef SEMAPHORE_QUERY_STATE
 #define SEMAPHORE_QUERY_STATE 0x0001
@@ -3117,12 +3369,26 @@ typedef enum _SEMAPHORE_INFORMATION_CLASS
     SemaphoreBasicInformation
 } SEMAPHORE_INFORMATION_CLASS;
 
+/**
+ * The SEMAPHORE_BASIC_INFORMATION structure contains basic information about a semaphore object.
+ */
 typedef struct _SEMAPHORE_BASIC_INFORMATION
 {
     LONG CurrentCount;
     LONG MaximumCount;
 } SEMAPHORE_BASIC_INFORMATION, *PSEMAPHORE_BASIC_INFORMATION;
 
+/**
+ * The NtCreateSemaphore routine creates a semaphore object, sets the initial count of the semaphore to the specified value,
+ * and opens a handle to the object with the specified desired access.
+ *
+ * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @param InitialCount The initial count of the semaphore object.
+ * @param MaximumCount The maximum count of the semaphore object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3134,6 +3400,14 @@ NtCreateSemaphore(
     _In_ LONG MaximumCount
     );
 
+/**
+ * The NtOpenSemaphore routine opens a handle to an existing semaphore object.
+ *
+ * @param SemaphoreHandle A pointer to a variable that receives the semaphore object handle.
+ * @param DesiredAccess The access mask that specifies the requested access to the semaphore object.
+ * @param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3143,6 +3417,14 @@ NtOpenSemaphore(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtReleaseSemaphore routine increases the count of the specified semaphore object by a specified amount.
+ *
+ * @param SemaphoreHandle A handle to the semaphore object.
+ * @param ReleaseCount The amount by which the semaphore object's count is to be increased.
+ * @param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3152,6 +3434,16 @@ NtReleaseSemaphore(
     _Out_opt_ PLONG PreviousCount
     );
 
+/**
+ * The NtQuerySemaphore routine retrieves information about a semaphore object.
+ *
+ * @param SemaphoreHandle A handle to the semaphore object.
+ * @param SemaphoreInformationClass The type of information to be retrieved.
+ * @param SemaphoreInformation A pointer to a buffer that receives the requested information.
+ * @param SemaphoreInformationLength The size of the buffer pointed to by SemaphoreInformation.
+ * @param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -3163,7 +3455,9 @@ NtQuerySemaphore(
     _Out_opt_ PULONG ReturnLength
     );
 
+//
 // Timer
+//
 
 #ifndef TIMER_QUERY_STATE
 #define TIMER_QUERY_STATE 0x0001
@@ -3937,7 +4231,7 @@ NtAllocateUuids(
 
 // System Information
 
-#endif  // (PHNT_MODE != PHNT_MODE_KERNEL)
+#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // rev
 // private
@@ -3983,8 +4277,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemRegistryQuotaInformation, // q: SYSTEM_REGISTRY_QUOTA_INFORMATION; s (requires SeIncreaseQuotaPrivilege)
     SystemExtendServiceTableInformation, // s (requires SeLoadDriverPrivilege) // loads win32k only
     SystemPrioritySeparation, // s (requires SeTcbPrivilege)
-    SystemVerifierAddDriverInformation, // s (requires SeDebugPrivilege) // 40
-    SystemVerifierRemoveDriverInformation, // s (requires SeDebugPrivilege)
+    SystemVerifierAddDriverInformation, // s: UNICODE_STRING (requires SeDebugPrivilege) // 40
+    SystemVerifierRemoveDriverInformation, // s: UNICODE_STRING (requires SeDebugPrivilege)
     SystemProcessorIdleInformation, // q: SYSTEM_PROCESSOR_IDLE_INFORMATION (EX in: USHORT ProcessorGroup)
     SystemLegacyDriverInformation, // q: SYSTEM_LEGACY_DRIVER_INFORMATION
     SystemCurrentTimeZoneInformation, // q; s: RTL_TIME_ZONE_INFORMATION
@@ -4020,7 +4314,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemWow64SharedInformationObsolete, // not implemented
     SystemRegisterFirmwareTableInformationHandler, // s: SYSTEM_FIRMWARE_TABLE_HANDLER // (kernel-mode only)
     SystemFirmwareTableInformation, // SYSTEM_FIRMWARE_TABLE_INFORMATION
-    SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX
+    SystemModuleInformationEx, // q: RTL_PROCESS_MODULE_INFORMATION_EX // since VISTA
     SystemVerifierTriageInformation, // not implemented
     SystemSuperfetchInformation, // q; s: SUPERFETCH_INFORMATION // PfQuerySuperfetchInformation
     SystemMemoryListInformation, // q: SYSTEM_MEMORY_LIST_INFORMATION; s: SYSTEM_MEMORY_LIST_COMMAND (requires SeProfileSingleProcessPrivilege) // 80
@@ -9168,7 +9462,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdSetSystemStoreDevice(
-    _In_ UNICODE_STRING SystemPartition
+    _In_ PCUNICODE_STRING SystemPartition
     );
 
 /**
@@ -9195,7 +9489,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdOpenStoreFromFile(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
 
@@ -9210,7 +9504,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdCreateStore(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _Out_ PHANDLE BcdStoreHandle
     );
 
@@ -9224,7 +9518,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdExportStore(
-    _In_ UNICODE_STRING BcdFilePath
+    _In_ PCUNICODE_STRING BcdFilePath
     );
 
 #if (PHNT_VERSION > PHNT_WIN11)
@@ -9242,7 +9536,7 @@ NTAPI
 BcdExportStoreEx(
     _In_ HANDLE BcdStoreHandle,
     _In_ ULONG Flags,
-    _In_ UNICODE_STRING BcdFilePath
+    _In_ PCUNICODE_STRING BcdFilePath
     );
 #endif
 
@@ -9256,7 +9550,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdImportStore(
-    _In_ UNICODE_STRING BcdFilePath
+    _In_ PCUNICODE_STRING BcdFilePath
     );
 
 typedef enum _BCD_IMPORT_FLAGS
@@ -9276,7 +9570,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdImportStoreWithFlags(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _In_ BCD_IMPORT_FLAGS BcdImportFlags
     );
 
@@ -9326,7 +9620,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 BcdOpenStore(
-    _In_ UNICODE_STRING BcdFilePath,
+    _In_ PCUNICODE_STRING BcdFilePath,
     _In_ BCD_OPEN_FLAGS BcdOpenFlags,
     _Out_ PHANDLE BcdStoreHandle
     );
@@ -9567,7 +9861,7 @@ NTSTATUS
 NTAPI
 BcdCopyObjects(
     _In_ HANDLE BcdStoreHandle,
-    _In_ BCD_OBJECT_DESCRIPTION Characteristics,
+    _In_ PBCD_OBJECT_DESCRIPTION Characteristics,
     _In_ BCD_COPY_FLAGS BcdCopyFlags,
     _In_ HANDLE TargetStoreHandle
     );
@@ -11302,32 +11596,36 @@ typedef enum _BcdOSLoaderElementTypes
 #ifndef _NTMMAPI_H
 #define _NTMMAPI_H
 
-// Protection constants
+//
+// Memory Protection Constants
+//
 
-#define PAGE_NOACCESS 0x01
-#define PAGE_READONLY 0x02
-#define PAGE_READWRITE 0x04
-#define PAGE_WRITECOPY 0x08
-#define PAGE_EXECUTE 0x10
-#define PAGE_EXECUTE_READ 0x20
-#define PAGE_EXECUTE_READWRITE 0x40
-#define PAGE_EXECUTE_WRITECOPY 0x80
-#define PAGE_GUARD 0x100
-#define PAGE_NOCACHE 0x200
-#define PAGE_WRITECOMBINE 0x400
+#define PAGE_NOACCESS 0x01              // Disables all access to the committed region of pages. An attempt to read from, write to, or execute the committed region results in an access violation.
+#define PAGE_READONLY 0x02              // Enables read-only access to the committed region of pages. An attempt to write or execute the committed region results in an access violation.
+#define PAGE_READWRITE 0x04             // Enables read-only or read/write access to the committed region of pages.
+#define PAGE_WRITECOPY 0x08             // Enables read-only or copy-on-write access to a mapped view of a file mapping object.
+#define PAGE_EXECUTE 0x10               // Enables execute access to the committed region of pages. An attempt to write to the committed region results in an access violation.
+#define PAGE_EXECUTE_READ 0x20          // Enables execute or read-only access to the committed region of pages. An attempt to write to the committed region results in an access violation.
+#define PAGE_EXECUTE_READWRITE 0x40     // Enables execute, read-only, or read/write access to the committed region of pages.
+#define PAGE_EXECUTE_WRITECOPY 0x80     // Enables execute, read-only, or copy-on-write access to a mapped view of a file mapping object.
+#define PAGE_GUARD 0x100                // Pages in the region become guard pages. Any attempt to access a guard page causes the system to raise a STATUS_GUARD_PAGE_VIOLATION exception.
+#define PAGE_NOCACHE 0x200              // Sets all pages to be non-cachable. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
+#define PAGE_WRITECOMBINE 0x400         // Sets all pages to be write-combined. Applications should not use this attribute. Using interlocked functions with memory that is mapped with SEC_NOCACHE can result in an EXCEPTION_ILLEGAL_INSTRUCTION exception.
 
-#define PAGE_REVERT_TO_FILE_MAP     0x80000000
-#define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000
-#define PAGE_TARGETS_NO_UPDATE      0x40000000
-#define PAGE_TARGETS_INVALID        0x40000000
-#define PAGE_ENCLAVE_UNVALIDATED    0x20000000
+#define PAGE_REVERT_TO_FILE_MAP     0x80000000 // Pages in the region can revert modified copy-on-write pages to the original unmodified page when using the mapped view of a file mapping object.
+#define PAGE_ENCLAVE_THREAD_CONTROL 0x80000000 // Pages in the region contain a thread control structure (TCS) from the Intel Software Guard Extensions programming model.
+#define PAGE_TARGETS_NO_UPDATE      0x40000000 // Pages in the region will not update the CFG bitmap when the protection changes. The default behavior for VirtualProtect is to mark all locations as valid call targets for CFG.
+#define PAGE_TARGETS_INVALID        0x40000000 // Pages in the region are excluded from the CFG bitmap as valid targets. Any indirect call to locations in those pages will terminate the process using the __fastfail intrinsic.
+#define PAGE_ENCLAVE_UNVALIDATED    0x20000000 // Pages in the region are excluded from measurement with the EEXTEND instruction of the Intel Software Guard Extensions programming model.
 #define PAGE_ENCLAVE_NO_CHANGE      0x20000000
 #define PAGE_ENCLAVE_MASK           0x10000000
 #define PAGE_ENCLAVE_DECOMMIT       (PAGE_ENCLAVE_MASK | 0)
 #define PAGE_ENCLAVE_SS_FIRST       (PAGE_ENCLAVE_MASK | 1)
 #define PAGE_ENCLAVE_SS_REST        (PAGE_ENCLAVE_MASK | 2)
 
-// Region and section constants
+//
+// Memory Region and Section Constants
+//
 
 #define MEM_COMMIT 0x00001000
 #define MEM_RESERVE 0x00002000
@@ -11446,23 +11744,33 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MEMORY_BLOCK_NON_CACHEABLE_GUARD_EXECUTABLE_READWRITE 30
 #define MEMORY_BLOCK_NON_CACHEABLE_GUARD_EXECUTABLE_COPYONWRITE 31
 
+/**
+ * The MEMORY_WORKING_SET_BLOCK structure contains working set information for a page.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_block
+ */
 typedef struct _MEMORY_WORKING_SET_BLOCK
 {
-    ULONG_PTR Protection : 5;
-    ULONG_PTR ShareCount : 3;
-    ULONG_PTR Shared : 1;
-    ULONG_PTR Node : 3;
+    ULONG_PTR Protection : 5;       // The protection attributes of the page. This member can be one of above MEMORY_BLOCK_* values.
+    ULONG_PTR ShareCount : 3;       // The number of processes that share this page. The maximum value of this member is 7.
+    ULONG_PTR Shared : 1;           // If this bit is 1, the page is sharable; otherwise, the page is not sharable.
+    ULONG_PTR Node : 3;             // The NUMA node where the physical memory should reside.
 #ifdef _WIN64
-    ULONG_PTR VirtualPage : 52;
+    ULONG_PTR VirtualPage : 52;     // The address of the page in the virtual address space.
 #else
-    ULONG VirtualPage : 20;
+    ULONG VirtualPage : 20;         // The address of the page in the virtual address space.
 #endif
 } MEMORY_WORKING_SET_BLOCK, *PMEMORY_WORKING_SET_BLOCK;
 
+/**
+ * The MEMORY_WORKING_SET_INFORMATION structure contains working set information for a process.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_information
+ */
 typedef struct _MEMORY_WORKING_SET_INFORMATION
 {
     ULONG_PTR NumberOfEntries;
-    _Field_size_(NumberOfEntries) MEMORY_WORKING_SET_BLOCK WorkingSetInfo[1];
+    _Field_size_(NumberOfEntries) MEMORY_WORKING_SET_BLOCK WorkingSetInfo[ANYSIZE_ARRAY];
 } MEMORY_WORKING_SET_INFORMATION, *PMEMORY_WORKING_SET_INFORMATION;
 
 // private
@@ -11506,42 +11814,47 @@ typedef enum _MEMORY_WORKING_SET_EX_LOCATION
     MemoryLocationReserved
 } MEMORY_WORKING_SET_EX_LOCATION;
 
-// private
-typedef struct _MEMORY_WORKING_SET_EX_BLOCK
+/**
+ * The MEMORY_WORKING_SET_EX_BLOCK structure contains extended working set information for a page.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_block
+ */
+typedef union _MEMORY_WORKING_SET_EX_BLOCK
 {
+    ULONG_PTR Flags;
     union
     {
         struct
         {
-            ULONG_PTR Valid : 1;
-            ULONG_PTR ShareCount : 3;
-            ULONG_PTR Win32Protection : 11;
-            ULONG_PTR Shared : 1;
-            ULONG_PTR Node : 6;
-            ULONG_PTR Locked : 1;
-            ULONG_PTR LargePage : 1;
-            ULONG_PTR Priority : 3;
+            ULONG_PTR Valid : 1;                    // If this bit is 1, the subsequent members are valid; otherwise they should be ignored.
+            ULONG_PTR ShareCount : 3;               // The number of processes that share this page. The maximum value of this member is 7.
+            ULONG_PTR Win32Protection : 11;         // The memory protection attributes of the page.
+            ULONG_PTR Shared : 1;                   // If this bit is 1, the page can be shared.
+            ULONG_PTR Node : 6;                     // The NUMA node. The maximum value of this member is 63.
+            ULONG_PTR Locked : 1;                   // If this bit is 1, the virtual page is locked in physical memory.
+            ULONG_PTR LargePage : 1;                // If this bit is 1, the page is a large page.
+            ULONG_PTR Priority : 3;                 // The memory priority attributes of the page.
             ULONG_PTR Reserved : 3;
-            ULONG_PTR SharedOriginal : 1;
-            ULONG_PTR Bad : 1;
-            ULONG_PTR Win32GraphicsProtection : 4; // 19H1
+            ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
+            ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
+            ULONG_PTR Win32GraphicsProtection : 4;  // The memory protection attributes of the page. // since 19H1
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 28;
 #endif
         };
         struct
         {
-            ULONG_PTR Valid : 1;
+            ULONG_PTR Valid : 1;                    // If this bit is 0, the subsequent members are valid; otherwise they should be ignored.
             ULONG_PTR Reserved0 : 14;
-            ULONG_PTR Shared : 1;
+            ULONG_PTR Shared : 1;                   // If this bit is 1, the page can be shared.
             ULONG_PTR Reserved1 : 5;
             ULONG_PTR PageTable : 1;
-            ULONG_PTR Location : 2;
-            ULONG_PTR Priority : 3;
+            ULONG_PTR Location : 2;                 // The memory location of the page.  MEMORY_WORKING_SET_EX_LOCATION
+            ULONG_PTR Priority : 3;                 // The memory priority of the page.
             ULONG_PTR ModifiedList : 1;
             ULONG_PTR Reserved2 : 2;
-            ULONG_PTR SharedOriginal : 1;
-            ULONG_PTR Bad : 1;
+            ULONG_PTR SharedOriginal : 1;           // If this bit is 1, the page was not modified.
+            ULONG_PTR Bad : 1;                      // If this bit is 1, the page is has been reported as bad.
 #ifdef _WIN64
             ULONG_PTR ReservedUlong : 32;
 #endif
@@ -11549,15 +11862,15 @@ typedef struct _MEMORY_WORKING_SET_EX_BLOCK
     };
 } MEMORY_WORKING_SET_EX_BLOCK, *PMEMORY_WORKING_SET_EX_BLOCK;
 
-// private
+/**
+ * The MEMORY_WORKING_SET_EX_INFORMATION structure contains extended working set information for a process.
+ *
+ * \ref https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_working_set_ex_information
+ */
 typedef struct _MEMORY_WORKING_SET_EX_INFORMATION
 {
-    PVOID VirtualAddress;
-    union
-    {
-        MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;
-        ULONG_PTR Long;
-    } u1;
+    PVOID VirtualAddress;                             // The virtual address.
+    MEMORY_WORKING_SET_EX_BLOCK VirtualAttributes;    // The attributes of the page at VirtualAddress.
 } MEMORY_WORKING_SET_EX_INFORMATION, *PMEMORY_WORKING_SET_EX_INFORMATION;
 
 // private
@@ -11972,7 +12285,9 @@ typedef enum _SECTION_INHERIT
 #define MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION 0x40
 #define MEM_EXECUTE_OPTION_VALID_FLAGS 0x7f
 
+//
 // Virtual memory
+//
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
@@ -11987,11 +12302,10 @@ NtAllocateVirtualMemory(
     _In_ ULONG_PTR ZeroBits,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG AllocationType,
-    _In_ ULONG Protect
+    _In_ ULONG PageProtection
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
-
 _Must_inspect_result_
 _When_(return == 0, __drv_allocatesMem(mem))
 NTSYSCALLAPI
@@ -12006,9 +12320,17 @@ NtAllocateVirtualMemoryEx(
     _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
-
 #endif
 
+/**
+ * Frees virtual memory allocated for a process.
+ *
+ * @param ProcessHandle A handle to the process whose virtual memory is to be freed.
+ * @param BaseAddress A pointer to the base address of the region of pages to be freed.
+ * @param RegionSize A pointer to a variable that specifies the size of the region of memory to be freed.
+ * @param FreeType The type of free operation. This parameter can be MEM_DECOMMIT or MEM_RELEASE.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -12019,14 +12341,24 @@ NtFreeVirtualMemory(
     _In_ ULONG FreeType
     );
 
+/**
+ * Reads virtual memory from a process.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be read.
+ * @param BaseAddress A pointer to the base address in the specified process from which to read.
+ * @param Buffer A pointer to a buffer that receives the contents from the address space of the specified process.
+ * @param NumberOfBytesToRead The number of bytes to be read from the specified process.
+ * @param NumberOfBytesRead A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReadVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead
     );
 
@@ -12036,51 +12368,90 @@ NTSTATUS
 NTAPI
 NtWow64ReadVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
-    _Out_opt_ PULONGLONG NumberOfBytesRead,
-    _In_ ULONG Flags
+    _In_opt_ ULONGLONG BaseAddress,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToRead,
+    _Out_opt_ PULONGLONG NumberOfBytesRead
     );
 
 #if (PHNT_VERSION >= PHNT_WIN11)
-// rev
+/**
+ * Reads virtual memory from a process with extended options.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be read.
+ * @param BaseAddress A pointer to the base address in the specified process from which to read.
+ * @param Buffer A pointer to a buffer that receives the contents from the address space of the specified process.
+ * @param NumberOfBytesToRead The number of bytes to be read from the specified process.
+ * @param NumberOfBytesRead A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @param Flags Additional flags for the read operation.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtReadVirtualMemoryEx(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _Out_writes_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _Out_writes_bytes_to_(NumberOfBytesToRead, *NumberOfBytesRead) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToRead,
     _Out_opt_ PSIZE_T NumberOfBytesRead,
     _In_ ULONG Flags
     );
 #endif
 
+/**
+ * Writes virtual memory to a process.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be written.
+ * @param BaseAddress A pointer to the base address in the specified process to which to write.
+ * @param Buffer A pointer to the buffer that contains the data to be written to the address space of the specified process.
+ * @param NumberOfBytesToWrite The number of bytes to be written to the specified process.
+ * @param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWriteVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ SIZE_T BufferSize,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ SIZE_T NumberOfBytesToWrite,
     _Out_opt_ PSIZE_T NumberOfBytesWritten
     );
 
 // rev
+/**
+ * Writes virtual memory to a 64-bit process from a 32-bit process.
+ *
+ * @param ProcessHandle A handle to the process whose memory is to be written.
+ * @param BaseAddress A pointer to the base address in the specified process to which to write.
+ * @param Buffer A pointer to the buffer that contains the data to be written to the address space of the specified process.
+ * @param NumberOfBytesToWrite The number of bytes to be written to the specified process.
+ * @param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWow64WriteVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
-    _In_reads_bytes_(BufferSize) PVOID Buffer,
-    _In_ ULONGLONG BufferSize,
+    _In_opt_ ULONGLONG BaseAddress,
+    _In_reads_bytes_(NumberOfBytesToWrite) PVOID Buffer,
+    _In_ ULONGLONG NumberOfBytesToWrite,
     _Out_opt_ PULONGLONG NumberOfBytesWritten
     );
 
+/**
+ * Changes the protection on a region of virtual memory.
+ *
+ * @param ProcessHandle A handle to the process whose memory protection is to be changed.
+ * @param BaseAddress A pointer to the base address of the region of pages whose access protection attributes are to be changed.
+ * @param RegionSize A pointer to a variable that specifies the size of the region whose access protection attributes are to be changed.
+ * @param NewProtection The memory protection option. This parameter can be one of the memory protection constants.
+ * @param OldProtection A pointer to a variable that receives the previous access protection of the first page in the specified region of pages.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -12088,10 +12459,21 @@ NtProtectVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _Inout_ PVOID *BaseAddress,
     _Inout_ PSIZE_T RegionSize,
-    _In_ ULONG NewProtect,
-    _Out_ PULONG OldProtect
+    _In_ ULONG NewProtection,
+    _Out_ PULONG OldProtection
     );
 
+/**
+ * Queries information about a region of virtual memory in a process.
+ *
+ * @param ProcessHandle A handle to the process whose memory information is to be queried.
+ * @param BaseAddress A pointer to the base address of the region of pages to be queried.
+ * @param MemoryInformationClass The type of information to be queried.
+ * @param MemoryInformation A pointer to a buffer that receives the memory information.
+ * @param MemoryInformationLength The size of the buffer pointed to by the MemoryInformation parameter.
+ * @param ReturnLength A pointer to a variable that receives the number of bytes returned in the MemoryInformation buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -12105,12 +12487,23 @@ NtQueryVirtualMemory(
     );
 
 // rev
+/**
+ * Queries information about a region of virtual memory in a 64-bit process from a 32-bit process.
+ *
+ * @param ProcessHandle A handle to the process whose memory information is to be queried.
+ * @param BaseAddress A pointer to the base address of the region of pages to be queried.
+ * @param MemoryInformationClass The type of information to be queried.
+ * @param MemoryInformation A pointer to a buffer that receives the memory information.
+ * @param MemoryInformationLength The size of the buffer pointed to by the MemoryInformation parameter.
+ * @param ReturnLength A pointer to a variable that receives the number of bytes returned in the MemoryInformation buffer.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtWow64QueryVirtualMemory64(
     _In_ HANDLE ProcessHandle,
-    _In_opt_ PVOID BaseAddress,
+    _In_opt_ ULONGLONG BaseAddress,
     _In_ MEMORY_INFORMATION_CLASS MemoryInformationClass,
     _Out_writes_bytes_(MemoryInformationLength) PVOID MemoryInformation,
     _In_ ULONGLONG MemoryInformationLength,
@@ -12119,6 +12512,15 @@ NtWow64QueryVirtualMemory64(
 
 typedef struct _IO_STATUS_BLOCK* PIO_STATUS_BLOCK;
 
+/**
+ * Flushes the instruction cache for a specified process.
+ *
+ * @param ProcessHandle A handle to the process whose instruction cache is to be flushed.
+ * @param BaseAddress A pointer to the base address of the region of memory to be flushed.
+ * @param RegionSize A pointer to a variable that specifies the size of the region to be flushed.
+ * @param IoStatus A pointer to an IO_STATUS_BLOCK structure that receives the status of the flush operation.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -12282,7 +12684,7 @@ NtMapViewOfSection(
     _Inout_ PSIZE_T ViewSize,
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
-    _In_ ULONG Win32Protect
+    _In_ ULONG PageProtection
     );
 
 #if (PHNT_VERSION >= PHNT_REDSTONE5)
@@ -12356,8 +12758,7 @@ NtAreMappedFilesTheSame(
 #define MEMORY_PARTITION_QUERY_ACCESS 0x0001
 #define MEMORY_PARTITION_MODIFY_ACCESS 0x0002
 #define MEMORY_PARTITION_ALL_ACCESS \
-    (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | \
-     MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
+    (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | MEMORY_PARTITION_QUERY_ACCESS | MEMORY_PARTITION_MODIFY_ACCESS)
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -12562,7 +12963,7 @@ NtAllocateUserPhysicalPagesEx(
     _In_ HANDLE ProcessHandle,
     _Inout_ PULONG_PTR NumberOfPages,
     _Out_writes_(*NumberOfPages) PULONG_PTR UserPfnArray,
-    _Inout_updates_opt_(ParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
+    _Inout_updates_opt_(ExtendedParameterCount) PMEM_EXTENDED_PARAMETER ExtendedParameters,
     _In_ ULONG ExtendedParameterCount
     );
 #endif
@@ -13173,170 +13574,6 @@ NtSetInformationSymbolicLink(
 #ifndef _NTPSAPI_H
 #define _NTPSAPI_H
 
-//
-// Process Object Specific Access Rights
-//
-
-#ifndef PROCESS_TERMINATE
-#define PROCESS_TERMINATE 0x0001
-#endif
-#ifndef PROCESS_CREATE_THREAD
-#define PROCESS_CREATE_THREAD 0x0002
-#endif
-#ifndef PROCESS_SET_SESSIONID
-#define PROCESS_SET_SESSIONID 0x0004
-#endif
-#ifndef PROCESS_VM_OPERATION
-#define PROCESS_VM_OPERATION 0x0008
-#endif
-#ifndef PROCESS_VM_READ
-#define PROCESS_VM_READ 0x0010
-#endif
-#ifndef PROCESS_VM_WRITE
-#define PROCESS_VM_WRITE 0x0020
-#endif
-#ifndef PROCESS_DUP_HANDLE
-#define PROCESS_DUP_HANDLE 0x0040
-#endif
-#ifndef PROCESS_CREATE_PROCESS
-#define PROCESS_CREATE_PROCESS 0x0080
-#endif
-#ifndef PROCESS_SET_QUOTA
-#define PROCESS_SET_QUOTA 0x0100
-#endif
-#ifndef PROCESS_SET_INFORMATION
-#define PROCESS_SET_INFORMATION 0x0200
-#endif
-#ifndef PROCESS_QUERY_INFORMATION
-#define PROCESS_QUERY_INFORMATION 0x0400
-#endif
-#ifndef PROCESS_SET_PORT
-#define PROCESS_SET_PORT 0x0800
-#endif
-#ifndef PROCESS_SUSPEND_RESUME
-#define PROCESS_SUSPEND_RESUME 0x0800
-#endif
-#ifndef PROCESS_QUERY_LIMITED_INFORMATION
-#define PROCESS_QUERY_LIMITED_INFORMATION 0x1000
-#endif
-#ifndef PROCESS_SET_LIMITED_INFORMATION
-#define PROCESS_SET_LIMITED_INFORMATION 0x2000
-#endif
-#ifndef PROCESS_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
-#define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
-#else
-#define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFF)
-#endif
-#endif
-
-//
-// Thread Object Specific Access Rights
-//
-
-#ifndef THREAD_TERMINATE
-#define THREAD_TERMINATE 0x0001
-#endif
-#ifndef THREAD_SUSPEND_RESUME
-#define THREAD_SUSPEND_RESUME 0x0002
-#endif
-#ifndef THREAD_ALERT
-#define THREAD_ALERT 0x0004
-#endif
-#ifndef THREAD_GET_CONTEXT
-#define THREAD_GET_CONTEXT 0x0008
-#endif
-#ifndef THREAD_SET_CONTEXT
-#define THREAD_SET_CONTEXT 0x0010
-#endif
-#ifndef THREAD_SET_INFORMATION
-#define THREAD_SET_INFORMATION 0x0020
-#endif
-#ifndef THREAD_QUERY_INFORMATION
-#define THREAD_QUERY_INFORMATION 0x0040
-#endif
-#ifndef THREAD_SET_THREAD_TOKEN
-#define THREAD_SET_THREAD_TOKEN 0x0080
-#endif
-#ifndef THREAD_IMPERSONATE
-#define THREAD_IMPERSONATE 0x0100
-#endif
-#ifndef THREAD_DIRECT_IMPERSONATION
-#define THREAD_DIRECT_IMPERSONATION 0x0200
-#endif
-#ifndef THREAD_SET_LIMITED_INFORMATION
-#define THREAD_SET_LIMITED_INFORMATION 0x0400
-#endif
-#ifndef THREAD_QUERY_LIMITED_INFORMATION
-#define THREAD_QUERY_LIMITED_INFORMATION 0x0800
-#endif
-#ifndef THREAD_RESUME
-#define THREAD_RESUME 0x1000
-#endif
-#ifndef THREAD_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
-#define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
-#else
-#define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3FF)
-#endif
-#endif
-
-//
-// Job Object Specific Access Rights
-//
-
-#ifndef JOB_OBJECT_ASSIGN_PROCESS
-#define JOB_OBJECT_ASSIGN_PROCESS 0x0001
-#endif
-#ifndef JOB_OBJECT_SET_ATTRIBUTES
-#define JOB_OBJECT_SET_ATTRIBUTES 0x0002
-#endif
-#ifndef JOB_OBJECT_QUERY
-#define JOB_OBJECT_QUERY 0x0004
-#endif
-#ifndef JOB_OBJECT_TERMINATE
-#define JOB_OBJECT_TERMINATE 0x0008
-#endif
-#ifndef JOB_OBJECT_SET_SECURITY_ATTRIBUTES
-#define JOB_OBJECT_SET_SECURITY_ATTRIBUTES 0x0010
-#endif
-#ifndef JOB_OBJECT_ALL_ACCESS
-#if (PHNT_VERSION >= PHNT_VISTA)
-#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3F)
-#else
-#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f) // pre-Vista full access
-#endif
-#endif
-
-//
-// Process information structures
-//
-
-typedef struct _PEB_LDR_DATA
-{
-    ULONG Length;
-    BOOLEAN Initialized;
-    HANDLE SsHandle;
-    LIST_ENTRY InLoadOrderModuleList;
-    LIST_ENTRY InMemoryOrderModuleList;
-    LIST_ENTRY InInitializationOrderModuleList;
-    PVOID EntryInProgress;
-    BOOLEAN ShutdownInProgress;
-    HANDLE ShutdownThreadId;
-} PEB_LDR_DATA, *PPEB_LDR_DATA;
-
-typedef struct _INITIAL_TEB
-{
-    struct
-    {
-        PVOID OldStackBase;
-        PVOID OldStackLimit;
-    } OldInitialTeb;
-    PVOID StackBase;
-    PVOID StackLimit;
-    PVOID StackAllocationBase;
-} INITIAL_TEB, *PINITIAL_TEB;
-
 /*
  * Process and Thread Environment Block support functions
  *
@@ -13866,6 +14103,7 @@ typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
 typedef struct _SILO_USER_SHARED_DATA *PSILO_USER_SHARED_DATA;
 typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
+typedef struct _PEB_LDR_DATA PEB_LDR_DATA, *PPEB_LDR_DATA;
 
 // PEB->AppCompatFlags
 #define KACF_OLDGETSHORTPATHNAME 0x00000001
@@ -14060,6 +14298,10 @@ typedef ULONG GDI_HANDLE_BUFFER[GDI_HANDLE_BUFFER_SIZE];
 typedef ULONG GDI_HANDLE_BUFFER32[GDI_HANDLE_BUFFER_SIZE32];
 typedef ULONG GDI_HANDLE_BUFFER64[GDI_HANDLE_BUFFER_SIZE64];
 
+typedef VOID (NTAPI* PPS_POST_PROCESS_INIT_ROUTINE)(
+    VOID
+    );
+
 #ifndef FLS_MAXIMUM_AVAILABLE
 #define FLS_MAXIMUM_AVAILABLE 128
 #endif
@@ -14070,212 +14312,548 @@ typedef ULONG GDI_HANDLE_BUFFER64[GDI_HANDLE_BUFFER_SIZE64];
 #define TLS_EXPANSION_SLOTS 1024
 #endif
 
-// symbols
+/**
+ * Process Environment Block (PEB) structure.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb
+ */
 typedef struct _PEB
 {
+    //
+    // The process was cloned with an inherited address space.
+    //
     BOOLEAN InheritedAddressSpace;
+
+    //
+    // The process has image file execution options (IFEO).
+    //
     BOOLEAN ReadImageFileExecOptions;
+
+    //
+    // The process has a debugger attached.
+    //
     BOOLEAN BeingDebugged;
+
     union
     {
         BOOLEAN BitField;
         struct
         {
-            BOOLEAN ImageUsesLargePages : 1;
-            BOOLEAN IsProtectedProcess : 1;
-            BOOLEAN IsImageDynamicallyRelocated : 1;
-            BOOLEAN SkipPatchingUser32Forwarders : 1;
-            BOOLEAN IsPackagedProcess : 1;
-            BOOLEAN IsAppContainer : 1;
-            BOOLEAN IsProtectedProcessLight : 1;
-            BOOLEAN IsLongPathAwareProcess : 1;
+            BOOLEAN ImageUsesLargePages : 1;            // The process uses large image regions (4 MB).
+            BOOLEAN IsProtectedProcess : 1;             // The process is a protected process.
+            BOOLEAN IsImageDynamicallyRelocated : 1;    // The process image base address was relocated.
+            BOOLEAN SkipPatchingUser32Forwarders : 1;   // The process skipped forwarders for User32.dll functions. 1 for 64-bit, 0 for 32-bit.
+            BOOLEAN IsPackagedProcess : 1;              // The process is a packaged store process (APPX/MSIX).
+            BOOLEAN IsAppContainer : 1;                 // The process has an AppContainer token.
+            BOOLEAN IsProtectedProcessLight : 1;        // The process is a protected process (light).
+            BOOLEAN IsLongPathAwareProcess : 1;         // The process is long path aware.
         };
     };
 
+    //
+    // Handle to a mutex for synchronization.
+    //
     HANDLE Mutant;
 
+    //
+    // Pointer to the base address of the process image.
+    //
     PVOID ImageBaseAddress;
+
+    //
+    // Pointer to the process loader data.
+    //
     PPEB_LDR_DATA Ldr;
+
+    //
+    // Pointer to the process parameters.
+    //
     PRTL_USER_PROCESS_PARAMETERS ProcessParameters;
+
+    //
+    // Reserved.
+    //
     PVOID SubSystemData;
+
+    //
+    // Pointer to the process default heap.
+    //
     PVOID ProcessHeap;
+
+    //
+    // Pointer to a critical section used to synchronize access to the PEB.
+    //
     PRTL_CRITICAL_SECTION FastPebLock;
+
+    //
+    // Pointer to a singly linked list used by ATL.
+    //
     PSLIST_HEADER AtlThunkSListPtr;
+
+    //
+    // Pointer to the Image File Execution Options key.
+    //
     PVOID IFEOKey;
 
+    //
+    // Cross process flags.
+    //
     union
     {
         ULONG CrossProcessFlags;
         struct
         {
-            ULONG ProcessInJob : 1;
-            ULONG ProcessInitializing : 1;
-            ULONG ProcessUsingVEH : 1;
-            ULONG ProcessUsingVCH : 1;
-            ULONG ProcessUsingFTH : 1;
-            ULONG ProcessPreviouslyThrottled : 1;
-            ULONG ProcessCurrentlyThrottled : 1;
-            ULONG ProcessImagesHotPatched : 1; // REDSTONE5
+            ULONG ProcessInJob : 1;                 // The process is part of a job.
+            ULONG ProcessInitializing : 1;          // The process is initializing.
+            ULONG ProcessUsingVEH : 1;              // The process is using VEH.
+            ULONG ProcessUsingVCH : 1;              // The process is using VCH.
+            ULONG ProcessUsingFTH : 1;              // The process is using FTH.
+            ULONG ProcessPreviouslyThrottled : 1;   // The process was previously throttled.
+            ULONG ProcessCurrentlyThrottled : 1;    // The process is currently throttled.
+            ULONG ProcessImagesHotPatched : 1;      // The process images are hot patched. // RS5
             ULONG ReservedBits0 : 24;
         };
     };
+
+    //
+    // User32 KERNEL_CALLBACK_TABLE (ntuser.h)
+    //
     union
     {
         PVOID KernelCallbackTable;
         PVOID UserSharedInfoPtr;
     };
 
+    //
+    // Reserved.
+    //
     ULONG SystemReserved;
+
+    //
+    // Pointer to the Active Template Library (ATL) singly linked list (32-bit)
+    //
     ULONG AtlThunkSListPtr32;
+
+    //
+    // Pointer to the API Set Schema.
+    //
     PAPI_SET_NAMESPACE ApiSetMap;
+
+    //
+    // Counter for TLS expansion.
+    //
     ULONG TlsExpansionCounter;
+
+    //
+    // Pointer to the TLS bitmap.
+    //
     PRTL_BITMAP TlsBitmap;
-    ULONG TlsBitmapBits[2]; // TLS_MINIMUM_AVAILABLE
 
+    //
+    // Bits for the TLS bitmap.
+    //
+    ULONG TlsBitmapBits[2];
+
+    //
+    // Reserved for CSRSS.
+    //
     PVOID ReadOnlySharedMemoryBase;
-    PSILO_USER_SHARED_DATA SharedData; // HotpatchInformation
-    PVOID *ReadOnlyStaticServerData;
 
-    PVOID AnsiCodePageData; // PCPTABLEINFO
-    PVOID OemCodePageData; // PCPTABLEINFO
-    PVOID UnicodeCaseTableData; // PNLSTABLEINFO
+    //
+    // Pointer to the USER_SHARED_DATA for the current SILO.
+    //
+    PSILO_USER_SHARED_DATA SharedData;
 
-    // Information for LdrpInitialize
+    //
+    // Reserved for CSRSS.
+    //
+    PVOID* ReadOnlyStaticServerData;
+
+    //
+    // Pointer to the ANSI code page data. (PCPTABLEINFO)
+    //
+    PVOID AnsiCodePageData;
+
+    //
+    // Pointer to the OEM code page data. (PCPTABLEINFO)
+    //
+    PVOID OemCodePageData;
+
+    //
+    // Pointer to the Unicode case table data. (PNLSTABLEINFO)
+    //
+    PVOID UnicodeCaseTableData;
+
+    //
+    // The total number of system processors.
+    //
     ULONG NumberOfProcessors;
+
+    //
+    // Global flags for the system.
+    //
     ULONG NtGlobalFlag;
 
-    // Passed up from MmCreatePeb from Session Manager registry key
+    //
+    // Timeout for critical sections.
+    //
     LARGE_INTEGER CriticalSectionTimeout;
+
+    //
+    // Reserved size for heap segments.
+    //
     SIZE_T HeapSegmentReserve;
+
+    //
+    // Committed size for heap segments.
+    //
     SIZE_T HeapSegmentCommit;
+
+    //
+    // Threshold for decommitting total free heap.
+    //
     SIZE_T HeapDeCommitTotalFreeThreshold;
+
+    //
+    // Threshold for decommitting free heap blocks.
+    //
     SIZE_T HeapDeCommitFreeBlockThreshold;
 
     //
-    // Where heap manager keeps track of all heaps created for a process
-    // Fields initialized by MmCreatePeb.  ProcessHeaps is initialized
+    // Number of process heaps.
+    //
+    ULONG NumberOfHeaps;
+
+    //
+    // Maximum number of process heaps.
+    //
+    ULONG MaximumNumberOfHeaps;
+
+    //
+    // Pointer to an array of process heaps. ProcessHeaps is initialized
     // to point to the first free byte after the PEB and MaximumNumberOfHeaps
     // is computed from the page size used to hold the PEB, less the fixed
     // size of this data structure.
     //
-    ULONG NumberOfHeaps;
-    ULONG MaximumNumberOfHeaps;
-    PVOID *ProcessHeaps; // PHEAP
+    PVOID* ProcessHeaps;
 
-    PVOID GdiSharedHandleTable; // PGDI_SHARED_MEMORY
+    //
+    // Pointer to the system GDI shared handle table.
+    //
+    PVOID GdiSharedHandleTable;
+
+    //
+    // Pointer to the process starter helper.
+    //
     PVOID ProcessStarterHelper;
+
+    //
+    // The maximum number of GDI function calls during batch operations (GdiSetBatchLimit)
+    //
     ULONG GdiDCAttributeList;
 
+    //
+    // Pointer to the loader lock critical section.
+    //
     PRTL_CRITICAL_SECTION LoaderLock;
 
     //
-    // Following fields filled in by MmCreatePeb from system values and/or
-    // image header.
+    // Major version of the operating system.
     //
     ULONG OSMajorVersion;
+
+    //
+    // Minor version of the operating system.
+    //
     ULONG OSMinorVersion;
+
+    //
+    // Build number of the operating system.
+    //
     USHORT OSBuildNumber;
+
+    //
+    // CSD version of the operating system.
+    //
     USHORT OSCSDVersion;
+
+    //
+    // Platform ID of the operating system.
+    //
     ULONG OSPlatformId;
+
+    //
+    // Subsystem version of the current process image (PE Headers).
+    //
     ULONG ImageSubsystem;
+
+    //
+    // Major version of the current process image subsystem (PE Headers).
+    //
     ULONG ImageSubsystemMajorVersion;
+
+    //
+    // Minor version of the current process image subsystem (PE Headers).
+    //
     ULONG ImageSubsystemMinorVersion;
+
+    //
+    // Affinity mask for the current process.
+    //
     KAFFINITY ActiveProcessAffinityMask;
+
+    //
+    // Temporary buffer for GDI handles accumulated in the current batch.
+    //
     GDI_HANDLE_BUFFER GdiHandleBuffer;
-    PVOID PostProcessInitRoutine;
 
+    //
+    // Pointer to the post-process initialization routine available for use by the application.
+    //
+    PPS_POST_PROCESS_INIT_ROUTINE PostProcessInitRoutine;
+
+    //
+    // Pointer to the TLS expansion bitmap.
+    //
     PRTL_BITMAP TlsExpansionBitmap;
-    ULONG TlsExpansionBitmapBits[32]; // TLS_EXPANSION_SLOTS
 
+    //
+    // Bits for the TLS expansion bitmap. TLS_EXPANSION_SLOTS
+    //
+    ULONG TlsExpansionBitmapBits[32];
+
+    //
+    // Session ID of the current process.
+    //
     ULONG SessionId;
 
-    ULARGE_INTEGER AppCompatFlags; // KACF_*
-    ULARGE_INTEGER AppCompatFlagsUser;
-    PVOID pShimData;
-    PVOID AppCompatInfo; // APPCOMPAT_EXE_DATA
+    //
+    // Application compatibility flags. KACF_*
+    //
+    ULARGE_INTEGER AppCompatFlags;
 
+    //
+    // Application compatibility flags. KACF_*
+    //
+    ULARGE_INTEGER AppCompatFlagsUser;
+
+    //
+    // Pointer to the Application SwitchBack Compatibility Engine.
+    //
+    PVOID pShimData;
+
+    //
+    // Pointer to the Application Compatibility Engine. // APPCOMPAT_EXE_DATA
+    //
+    PVOID AppCompatInfo;
+
+    //
+    // CSD version string of the operating system.
+    //
     UNICODE_STRING CSDVersion;
 
+    //
+    // Pointer to the process activation context.
+    //
     PACTIVATION_CONTEXT_DATA ActivationContextData;
+
+    //
+    // Pointer to the process assembly storage map.
+    //
     PASSEMBLY_STORAGE_MAP ProcessAssemblyStorageMap;
+
+    //
+    // Pointer to the system default activation context.
+    //
     PACTIVATION_CONTEXT_DATA SystemDefaultActivationContextData;
+
+    //
+    // Pointer to the system assembly storage map.
+    //
     PASSEMBLY_STORAGE_MAP SystemAssemblyStorageMap;
 
+    //
+    // Minimum stack commit size.
+    //
     SIZE_T MinimumStackCommit;
 
-    PVOID SparePointers[2]; // 19H1 (previously FlsCallback to FlsHighIndex)
-    PVOID PatchLoaderData;
-    PVOID ChpeV2ProcessInfo; // _CHPEV2_PROCESS_INFO
+    //
+    // since 19H1 (previously FlsCallback to FlsHighIndex)
+    //
+    PVOID SparePointers[2];
 
+    //
+    // Pointer to the patch loader data.
+    //
+    PVOID PatchLoaderData;
+
+    //
+    // Pointer to the CHPE V2 process information. CHPEV2_PROCESS_INFO
+    //
+    PVOID ChpeV2ProcessInfo;
+
+    //
+    // Packaged process feature state.
+    //
     ULONG AppModelFeatureState;
+
+    //
+    // SpareUlongs
+    //
     ULONG SpareUlongs[2];
 
+    //
+    // Active code page.
+    //
     USHORT ActiveCodePage;
+
+    //
+    // OEM code page.
+    //
     USHORT OemCodePage;
+
+    //
+    // Code page case mapping.
+    //
     USHORT UseCaseMapping;
+
+    //
+    // Unused NLS field.
+    //
     USHORT UnusedNlsField;
 
+    //
+    // Pointer to the application WER registration data.
+    //
     PWER_PEB_HEADER_BLOCK WerRegistrationData;
+
+    //
+    // Pointer to the application WER assert pointer.
+    //
     PVOID WerShipAssertPtr;
 
+    //
+    // Pointer to the EC bitmap on ARM64. (Windows 11 and above)
+    //
     union
     {
-        PVOID pContextData; // WIN7
-        PVOID pUnused; // WIN10
-        PVOID EcCodeBitMap; // WIN11
+        PVOID pContextData; // Pointer to the switchback compatibility engine (Windows 7 and below)
+        PVOID EcCodeBitMap; // Pointer to the EC bitmap on ARM64 (Windows 11 and above) // since WIN11
     };
 
+    //
+    // Reserved.
+    //
     PVOID pImageHeaderHash;
+
+    //
+    // ETW tracing flags.
+    //
     union
     {
         ULONG TracingFlags;
         struct
         {
-            ULONG HeapTracingEnabled : 1;
-            ULONG CritSecTracingEnabled : 1;
-            ULONG LibLoaderTracingEnabled : 1;
+            ULONG HeapTracingEnabled : 1;       // ETW heap tracing enabled.
+            ULONG CritSecTracingEnabled : 1;    // ETW lock tracing enabled.
+            ULONG LibLoaderTracingEnabled : 1;  // ETW loader tracing enabled.
             ULONG SpareTracingBits : 29;
         };
     };
+
+    //
+    // Reserved for CSRSS.
+    //
     ULONGLONG CsrServerReadOnlySharedMemoryBase;
+
+    //
+    // Pointer to the thread pool worker list lock.
+    //
     PRTL_CRITICAL_SECTION TppWorkerpListLock;
+
+    //
+    // Pointer to the thread pool worker list.
+    //
     LIST_ENTRY TppWorkerpList;
+
+    //
+    // Wait on address hash table. (RtlWaitOnAddress)
+    //
     PVOID WaitOnAddressHashTable[128];
-    PTELEMETRY_COVERAGE_HEADER TelemetryCoverageHeader; // REDSTONE3
+
+    //
+    // Pointer to the telemetry coverage header. // since RS3
+    //
+    PTELEMETRY_COVERAGE_HEADER TelemetryCoverageHeader;
+
+    //
+    // Cloud file flags. (ProjFs and Cloud Files) // since RS4
+    //
     ULONG CloudFileFlags;
-    ULONG CloudFileDiagFlags; // REDSTONE4
+
+    //
+    // Cloud file diagnostic flags.
+    //
+    ULONG CloudFileDiagFlags;
+
+    //
+    // Placeholder compatibility mode. (ProjFs and Cloud Files)
+    //
     CHAR PlaceholderCompatibilityMode;
+
+    //
+    // Reserved for placeholder compatibility mode.
+    //
     CHAR PlaceholderCompatibilityModeReserved[7];
-    PLEAP_SECOND_DATA LeapSecondData; // REDSTONE5
+
+    //
+    // Pointer to leap second data. // since RS5
+    //
+    PLEAP_SECOND_DATA LeapSecondData;
+
+    //
+    // Leap second flags.
+    //
     union
     {
         ULONG LeapSecondFlags;
         struct
         {
-            ULONG SixtySecondEnabled : 1;
+            ULONG SixtySecondEnabled : 1; // Leap seconds enabled.
             ULONG Reserved : 31;
         };
     };
+
+    //
+    // Global flags for the process.
+    //
     ULONG NtGlobalFlag2;
-    ULONGLONG ExtendedFeatureDisableMask; // since WIN11
+
+    //
+    // Extended feature disable mask (AVX). // since WIN11
+    //
+    ULONGLONG ExtendedFeatureDisableMask;
 } PEB, *PPEB;
 
 #ifdef _WIN64
-C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
-//C_ASSERT(sizeof(PEB) == 0x7B0); // REDSTONE3
-//C_ASSERT(sizeof(PEB) == 0x7B8); // REDSTONE4
-//C_ASSERT(sizeof(PEB) == 0x7C8); // REDSTONE5 // 19H1
-C_ASSERT(sizeof(PEB) == 0x7d0); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x2C0);
+//static_assert(sizeof(PEB) == 0x7B0); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x7B8); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x7C8); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x7d0); // WIN11
 #else
-C_ASSERT(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
-//C_ASSERT(sizeof(PEB) == 0x468); // REDSTONE3
-//C_ASSERT(sizeof(PEB) == 0x470); // REDSTONE4
-//C_ASSERT(sizeof(PEB) == 0x480); // REDSTONE5 // 19H1
-C_ASSERT(sizeof(PEB) == 0x488); // WIN11
+static_assert(FIELD_OFFSET(PEB, SessionId) == 0x1D4);
+//static_assert(sizeof(PEB) == 0x468); // REDSTONE3
+//static_assert(sizeof(PEB) == 0x470); // REDSTONE4
+//static_assert(sizeof(PEB) == 0x480); // REDSTONE5 // 19H1
+static_assert(sizeof(PEB) == 0x488); // WIN11
 #endif
 
 #define GDI_BATCH_BUFFER_SIZE 310
 
+/**
+ * The GDI_TEB_BATCH structure is used to store information about GDI batch operations.
+ */
 typedef struct _GDI_TEB_BATCH
 {
     ULONG Offset;
@@ -14285,12 +14863,18 @@ typedef struct _GDI_TEB_BATCH
 
 #define TEB_ACTIVE_FRAME_CONTEXT_FLAG_EXTENDED (0x00000001)
 
+/**
+ * The TEB_ACTIVE_FRAME_CONTEXT structure is used to store information about an active frame context.
+ */
 typedef struct _TEB_ACTIVE_FRAME_CONTEXT
 {
     ULONG Flags;
     PCSTR FrameName;
 } TEB_ACTIVE_FRAME_CONTEXT, *PTEB_ACTIVE_FRAME_CONTEXT;
 
+/**
+ * The TEB_ACTIVE_FRAME_CONTEXT_EX structure extends TEB_ACTIVE_FRAME_CONTEXT with additional information.
+ */
 typedef struct _TEB_ACTIVE_FRAME_CONTEXT_EX
 {
     TEB_ACTIVE_FRAME_CONTEXT BasicContext;
@@ -14299,6 +14883,9 @@ typedef struct _TEB_ACTIVE_FRAME_CONTEXT_EX
 
 #define TEB_ACTIVE_FRAME_FLAG_EXTENDED (0x00000001)
 
+/**
+ * The TEB_ACTIVE_FRAME structure is used to store information about an active frame.
+ */
 typedef struct _TEB_ACTIVE_FRAME
 {
     ULONG Flags;
@@ -14306,6 +14893,9 @@ typedef struct _TEB_ACTIVE_FRAME
     PTEB_ACTIVE_FRAME_CONTEXT Context;
 } TEB_ACTIVE_FRAME, *PTEB_ACTIVE_FRAME;
 
+/**
+ * The TEB_ACTIVE_FRAME_EX structure extends TEB_ACTIVE_FRAME with additional information.
+ */
 typedef struct _TEB_ACTIVE_FRAME_EX
 {
     TEB_ACTIVE_FRAME BasicFrame;
@@ -14318,91 +14908,195 @@ typedef struct _TEB_ACTIVE_FRAME_EX
 /**
  * Thread Environment Block (TEB) structure.
  *
- * This structure contains information about the currently executing thread.
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-teb
  */
 typedef struct _TEB
 {
     //
     // Thread Information Block (TIB) contains the thread's stack, base and limit addresses, the current stack pointer, and the exception list.
     //
-
     NT_TIB NtTib;
 
     //
-    // A pointer to the environment block for the thread.
+    // Reserved.
     //
-
     PVOID EnvironmentPointer;
 
     //
     // Client ID for this thread.
     //
-
     CLIENT_ID ClientId;
 
     //
     // A handle to an active Remote Procedure Call (RPC) if the thread is currently involved in an RPC operation.
     //
-
     PVOID ActiveRpcHandle;
 
     //
     // A pointer to the __declspec(thread) local storage array.
     //
-
     PVOID ThreadLocalStoragePointer;
 
     //
     // A pointer to the Process Environment Block (PEB), which contains information about the process.
     //
-
     PPEB ProcessEnvironmentBlock;
 
+    //
+    // The previous Win32 error value for this thread.
+    //
     ULONG LastErrorValue;
+
+    //
+    // The number of critical sections currently owned by this thread.
+    //
     ULONG CountOfOwnedCriticalSections;
+
+    //
+    // Reserved.
+    //
     PVOID CsrClientThread;
+
+    //
+    // Reserved.
+    //
     PVOID Win32ThreadInfo;
+
+    //
+    // Reserved.
+    //
     ULONG User32Reserved[26];
+
+    //
+    // Reserved.
+    //
     ULONG UserReserved[5];
+
+    //
+    // Reserved.
+    //
     PVOID WOW32Reserved;
+
+    //
+    // The LCID of the current thread. (Kernel32!GetThreadLocale)
+    //
     LCID CurrentLocale;
+
+    //
+    // Reserved.
+    //
     ULONG FpSoftwareStatusRegister;
+
+    //
+    // Reserved.
+    //
     PVOID ReservedForDebuggerInstrumentation[16];
+
 #ifdef _WIN64
+    //
+    // Reserved.
+    //
     PVOID SystemReserved1[25];
 
+    //
+    // Per-thread fiber local storage. (Teb->HasFiberData)
+    //
     PVOID HeapFlsData;
 
+    //
+    // Reserved.
+    //
     ULONG_PTR RngState[4];
 #else
+    //
+    // Reserved.
+    //
     PVOID SystemReserved1[26];
 #endif
 
+    //
+    // Placeholder compatibility mode. (ProjFs and Cloud Files)
+    //
     CHAR PlaceholderCompatibilityMode;
+
+    //
+    // Indicates whether placeholder hydration is always explicit.
+    //
     BOOLEAN PlaceholderHydrationAlwaysExplicit;
+
+    //
+    // Reserved.
+    //
     CHAR PlaceholderReserved[10];
 
+    //
+    // The process ID (PID) that the current COM server thread is acting on behalf of.
+    //
     ULONG ProxiedProcessId;
+
+    //
+    // Pointer to the activation context stack for the current thread.
+    //
     ACTIVATION_CONTEXT_STACK ActivationStack;
 
+    //
+    // Opaque operation on behalf of another user or process.
+    //
     UCHAR WorkingOnBehalfTicket[8];
 
+    //
+    // The last exception status for the current thread.
+    //
     NTSTATUS ExceptionCode;
 
+    //
+    // Pointer to the activation context stack for the current thread.
+    //
     PACTIVATION_CONTEXT_STACK ActivationContextStackPointer;
+
+    //
+    // The stack pointer (SP) of the current system call or exception during instrumentation.
+    //
     ULONG_PTR InstrumentationCallbackSp;
+
+    //
+    // The program counter (PC) of the previous system call or exception during instrumentation.
+    //
     ULONG_PTR InstrumentationCallbackPreviousPc;
+
+    //
+    // The stack pointer (SP) of the previous system call or exception during instrumentation.
+    //
     ULONG_PTR InstrumentationCallbackPreviousSp;
+
 #ifdef _WIN64
+    //
+    // The miniversion ID of the current transacted file operation.
+    //
     ULONG TxFsContext;
 #endif
 
+    //
+    // Indicates the state of the system call or exception instrumentation callback.
+    //
     BOOLEAN InstrumentationCallbackDisabled;
+
 #ifdef _WIN64
+    //
+    // Indicates the state of alignment exceptions for unaligned load/store operations.
+    //
     BOOLEAN UnalignedLoadStoreExceptions;
 #endif
+
 #ifndef _WIN64
+    //
+    // SpareBytes.
+    //
     UCHAR SpareBytes[23];
+
+    //
+    // The miniversion ID of the current transacted file operation.
+    //
     ULONG TxFsContext;
 #endif
     GDI_TEB_BATCH GdiTebBatch;
@@ -14422,34 +15116,98 @@ typedef struct _TEB
     PVOID glCurrentRC;
     PVOID glContext;
 
+    //
+    // The previous status value for this thread.
+    //
     NTSTATUS LastStatusValue;
 
+    //
+    // A static string for use by the application.
+    //
     UNICODE_STRING StaticUnicodeString;
+
+    //
+    // A static buffer for use by the application.
+    //
     WCHAR StaticUnicodeBuffer[STATIC_UNICODE_BUFFER_LENGTH];
 
+    //
+    // The maximum stack size and indicates the base of the stack.
+    //
     PVOID DeallocationStack;
 
+    //
+    // Data for Thread Local Storage. (TlsGetValue)
+    //
     PVOID TlsSlots[TLS_MINIMUM_AVAILABLE];
+
+    //
+    // Reserved.
+    //
     LIST_ENTRY TlsLinks;
 
+    //
+    // Reserved for NTVDM.
+    //
     PVOID Vdm;
+
+    //
+    // Reserved.
+    //
     PVOID ReservedForNtRpc;
+
+    //
+    // Reserved.
+    //
     PVOID DbgSsReserved[2];
 
+    //
+    // The error mode for the current thread. (GetThreadErrorMode)
+    //
     ULONG HardErrorMode;
+
+    //
+    // Reserved.
+    //
 #ifdef _WIN64
     PVOID Instrumentation[11];
 #else
     PVOID Instrumentation[9];
 #endif
+
+    //
+    // Reserved.
+    //
     GUID ActivityId;
 
+    //
+    // The service creating the thread (svchost).
+    //
     PVOID SubProcessTag;
+
+    //
+    // Reserved.
+    //
     PVOID PerflibData;
+
+    //
+    // Reserved.
+    //
     PVOID EtwTraceData;
-    PVOID WinSockData;
+
+    //
+    // The address of a socket handle during a blocking socket operation. (WSAStartup)
+    //
+    HANDLE WinSockData;
+
+    //
+    // The number of function calls accumulated in the current GDI batch. (GdiSetBatchLimit)
+    //
     ULONG GdiBatchCount;
 
+    //
+    // The preferred processor for the curremt thread. (SetThreadIdealProcessor/SetThreadIdealProcessorEx)
+    //
     union
     {
         PROCESSOR_NUMBER CurrentIdealProcessor;
@@ -14463,9 +15221,21 @@ typedef struct _TEB
         };
     };
 
+    //
+    // The minimum size of the stack available during any stack overflow exceptions. (SetThreadStackGuarantee)
+    //
     ULONG GuaranteedStackBytes;
+
+    //
+    // Reserved.
+    //
     PVOID ReservedForPerf;
-    PVOID ReservedForOle; // tagSOleTlsData
+
+    //
+    // tagSOleTlsData.
+    //
+    PVOID ReservedForOle;
+
     ULONG WaitingOnLoaderLock;
     PVOID SavedPriorityState;
     ULONG_PTR ReservedForCodeCoverage;
@@ -14537,14 +15307,178 @@ typedef struct _TEB
 } TEB, *PTEB;
 
 #ifdef _WIN64
-//C_ASSERT(sizeof(TEB) == 0x1850); // WIN11
-C_ASSERT(sizeof(TEB) == 0x1878); // 24H2
+//static_assert(sizeof(TEB) == 0x1850); // WIN11
+static_assert(sizeof(TEB) == 0x1878); // 24H2
 #else
-//C_ASSERT(sizeof(TEB) == 0x1018); // WIN11
-C_ASSERT(sizeof(TEB) == 0x1038); // 24H2
+//static_assert(sizeof(TEB) == 0x1018); // WIN11
+static_assert(sizeof(TEB) == 0x1038); // 24H2
 #endif
 
 #endif  // _NTPEBTEB_H
+
+//
+// Process Object Specific Access Rights
+//
+
+#ifndef PROCESS_TERMINATE
+#define PROCESS_TERMINATE 0x0001
+#endif
+#ifndef PROCESS_CREATE_THREAD
+#define PROCESS_CREATE_THREAD 0x0002
+#endif
+#ifndef PROCESS_SET_SESSIONID
+#define PROCESS_SET_SESSIONID 0x0004
+#endif
+#ifndef PROCESS_VM_OPERATION
+#define PROCESS_VM_OPERATION 0x0008
+#endif
+#ifndef PROCESS_VM_READ
+#define PROCESS_VM_READ 0x0010
+#endif
+#ifndef PROCESS_VM_WRITE
+#define PROCESS_VM_WRITE 0x0020
+#endif
+#ifndef PROCESS_DUP_HANDLE
+#define PROCESS_DUP_HANDLE 0x0040
+#endif
+#ifndef PROCESS_CREATE_PROCESS
+#define PROCESS_CREATE_PROCESS 0x0080
+#endif
+#ifndef PROCESS_SET_QUOTA
+#define PROCESS_SET_QUOTA 0x0100
+#endif
+#ifndef PROCESS_SET_INFORMATION
+#define PROCESS_SET_INFORMATION 0x0200
+#endif
+#ifndef PROCESS_QUERY_INFORMATION
+#define PROCESS_QUERY_INFORMATION 0x0400
+#endif
+#ifndef PROCESS_SET_PORT
+#define PROCESS_SET_PORT 0x0800
+#endif
+#ifndef PROCESS_SUSPEND_RESUME
+#define PROCESS_SUSPEND_RESUME 0x0800
+#endif
+#ifndef PROCESS_QUERY_LIMITED_INFORMATION
+#define PROCESS_QUERY_LIMITED_INFORMATION 0x1000
+#endif
+#ifndef PROCESS_SET_LIMITED_INFORMATION
+#define PROCESS_SET_LIMITED_INFORMATION 0x2000
+#endif
+#ifndef PROCESS_ALL_ACCESS
+#if (PHNT_VERSION >= PHNT_VISTA)
+#define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
+#else
+#define PROCESS_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0xFFF)
+#endif
+#endif
+
+//
+// Thread Object Specific Access Rights
+//
+
+#ifndef THREAD_TERMINATE
+#define THREAD_TERMINATE 0x0001
+#endif
+#ifndef THREAD_SUSPEND_RESUME
+#define THREAD_SUSPEND_RESUME 0x0002
+#endif
+#ifndef THREAD_ALERT
+#define THREAD_ALERT 0x0004
+#endif
+#ifndef THREAD_GET_CONTEXT
+#define THREAD_GET_CONTEXT 0x0008
+#endif
+#ifndef THREAD_SET_CONTEXT
+#define THREAD_SET_CONTEXT 0x0010
+#endif
+#ifndef THREAD_SET_INFORMATION
+#define THREAD_SET_INFORMATION 0x0020
+#endif
+#ifndef THREAD_QUERY_INFORMATION
+#define THREAD_QUERY_INFORMATION 0x0040
+#endif
+#ifndef THREAD_SET_THREAD_TOKEN
+#define THREAD_SET_THREAD_TOKEN 0x0080
+#endif
+#ifndef THREAD_IMPERSONATE
+#define THREAD_IMPERSONATE 0x0100
+#endif
+#ifndef THREAD_DIRECT_IMPERSONATION
+#define THREAD_DIRECT_IMPERSONATION 0x0200
+#endif
+#ifndef THREAD_SET_LIMITED_INFORMATION
+#define THREAD_SET_LIMITED_INFORMATION 0x0400
+#endif
+#ifndef THREAD_QUERY_LIMITED_INFORMATION
+#define THREAD_QUERY_LIMITED_INFORMATION 0x0800
+#endif
+#ifndef THREAD_RESUME
+#define THREAD_RESUME 0x1000
+#endif
+#ifndef THREAD_ALL_ACCESS
+#if (PHNT_VERSION >= PHNT_VISTA)
+#define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | SPECIFIC_RIGHTS_ALL)
+#else
+#define THREAD_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3FF)
+#endif
+#endif
+
+//
+// Job Object Specific Access Rights
+//
+
+#ifndef JOB_OBJECT_ASSIGN_PROCESS
+#define JOB_OBJECT_ASSIGN_PROCESS 0x0001
+#endif
+#ifndef JOB_OBJECT_SET_ATTRIBUTES
+#define JOB_OBJECT_SET_ATTRIBUTES 0x0002
+#endif
+#ifndef JOB_OBJECT_QUERY
+#define JOB_OBJECT_QUERY 0x0004
+#endif
+#ifndef JOB_OBJECT_TERMINATE
+#define JOB_OBJECT_TERMINATE 0x0008
+#endif
+#ifndef JOB_OBJECT_SET_SECURITY_ATTRIBUTES
+#define JOB_OBJECT_SET_SECURITY_ATTRIBUTES 0x0010
+#endif
+#ifndef JOB_OBJECT_ALL_ACCESS
+#if (PHNT_VERSION >= PHNT_VISTA)
+#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x3F)
+#else
+#define JOB_OBJECT_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED | SYNCHRONIZE | 0x1f) // pre-Vista full access
+#endif
+#endif
+
+//
+// Process information structures
+//
+
+typedef struct _PEB_LDR_DATA
+{
+    ULONG Length;
+    BOOLEAN Initialized;
+    HANDLE SsHandle;
+    LIST_ENTRY InLoadOrderModuleList;
+    LIST_ENTRY InMemoryOrderModuleList;
+    LIST_ENTRY InInitializationOrderModuleList;
+    PVOID EntryInProgress;
+    BOOLEAN ShutdownInProgress;
+    HANDLE ShutdownThreadId;
+} PEB_LDR_DATA, *PPEB_LDR_DATA;
+
+typedef struct _INITIAL_TEB
+{
+    struct
+    {
+        PVOID OldStackBase;
+        PVOID OldStackLimit;
+    } OldInitialTeb;
+    PVOID StackBase;
+    PVOID StackLimit;
+    PVOID StackAllocationBase;
+} INITIAL_TEB, *PINITIAL_TEB;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _PROCESSINFOCLASS
@@ -14737,41 +15671,49 @@ typedef enum _THREADINFOCLASS
 #endif
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 // Use with both ProcessPagePriority and ThreadPagePriority
 typedef struct _PAGE_PRIORITY_INFORMATION
 {
     ULONG PagePriority;
 } PAGE_PRIORITY_INFORMATION, *PPAGE_PRIORITY_INFORMATION;
-#endif
 
+//
 // Process information structures
+//
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
-
+/**
+ * The PROCESS_BASIC_INFORMATION structure contains basic information about a process.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryinformationprocess#process_basic_information
+ */
 typedef struct _PROCESS_BASIC_INFORMATION
 {
-    NTSTATUS ExitStatus;
-    PPEB PebBaseAddress;
-    KAFFINITY AffinityMask;
-    KPRIORITY BasePriority;
-    HANDLE UniqueProcessId;
-    HANDLE InheritedFromUniqueProcessId;
+    NTSTATUS ExitStatus;                    // The exit status of the process. (GetExitCodeProcess)
+    PPEB PebBaseAddress;                    // A pointer to the process environment block (PEB) of the process.
+    KAFFINITY AffinityMask;                 // The affinity mask of the process. (GetProcessAffinityMask) (deprecated)
+    KPRIORITY BasePriority;                 // The base priority of the process. (GetPriorityClass)
+    HANDLE UniqueProcessId;                 // The unique identifier of the process. (GetProcessId)
+    HANDLE InheritedFromUniqueProcessId;    // The unique identifier of the parent process.
 } PROCESS_BASIC_INFORMATION, *PPROCESS_BASIC_INFORMATION;
 
+/**
+ * The PROCESS_EXTENDED_BASIC_INFORMATION structure contains extended basic information about a process.
+ */
 typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
 {
-    SIZE_T Size; // set to sizeof structure on input
+    _In_ SIZE_T Size; // The size of the structure, in bytes. This member must be set to sizeof(PROCESS_EXTENDED_BASIC_INFORMATION).
     union
     {
         PROCESS_BASIC_INFORMATION BasicInfo;
         struct
         {
-            NTSTATUS ExitStatus;
-            PPEB PebBaseAddress;
-            KAFFINITY AffinityMask;
-            KPRIORITY BasePriority;
-            HANDLE UniqueProcessId;
-            HANDLE InheritedFromUniqueProcessId;
+            NTSTATUS ExitStatus;    // The exit status of the process. (GetExitCodeProcess)
+            PPEB PebBaseAddress;    // A pointer to the process environment block (PEB) of the process.
+            KAFFINITY AffinityMask; // The affinity mask of the process. (GetProcessAffinityMask) (deprecated)
+            KPRIORITY BasePriority; // The base priority of the process. (GetPriorityClass)
+            HANDLE UniqueProcessId; // The unique identifier of the process. (GetProcessId)
+            HANDLE InheritedFromUniqueProcessId; // The unique identifier of the parent process.
         };
     };
     union
@@ -14794,80 +15736,185 @@ typedef struct _PROCESS_EXTENDED_BASIC_INFORMATION
     };
 } PROCESS_EXTENDED_BASIC_INFORMATION, *PPROCESS_EXTENDED_BASIC_INFORMATION;
 
+/**
+ * The VM_COUNTERS structure contains various memory usage statistics for a process.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters
+ */
 typedef struct _VM_COUNTERS
 {
-    SIZE_T PeakVirtualSize;
-    SIZE_T VirtualSize;
-    ULONG PageFaultCount;
-    SIZE_T PeakWorkingSetSize;
-    SIZE_T WorkingSetSize;
-    SIZE_T QuotaPeakPagedPoolUsage;
-    SIZE_T QuotaPagedPoolUsage;
-    SIZE_T QuotaPeakNonPagedPoolUsage;
-    SIZE_T QuotaNonPagedPoolUsage;
-    SIZE_T PagefileUsage;
-    SIZE_T PeakPagefileUsage;
+    SIZE_T PeakVirtualSize;             // The peak virtual address space size of this process, in bytes.
+    SIZE_T VirtualSize;                 // The virtual address space size of this process, in bytes.
+    ULONG PageFaultCount;               // The number of page faults.
+    SIZE_T PeakWorkingSetSize;          // The peak working set size, in bytes.
+    SIZE_T WorkingSetSize;              // The current working set size, in bytes
+    SIZE_T QuotaPeakPagedPoolUsage;     // The peak paged pool usage, in bytes.
+    SIZE_T QuotaPagedPoolUsage;         // The current paged pool usage, in bytes.
+    SIZE_T QuotaPeakNonPagedPoolUsage;  // The peak non-paged pool usage, in bytes.
+    SIZE_T QuotaNonPagedPoolUsage;      // The current non-paged pool usage, in bytes.
+    SIZE_T PagefileUsage;               // The Commit Charge value in bytes for this process. Commit Charge is the total amount of private memory that the memory manager has committed for a running process.
+    SIZE_T PeakPagefileUsage;           // The peak value in bytes of the Commit Charge during the lifetime of this process.
 } VM_COUNTERS, *PVM_COUNTERS;
 
+/**
+ * The VM_COUNTERS_EX structure extends VM_COUNTERS to include private memory usage.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
+ */
 typedef struct _VM_COUNTERS_EX
 {
-    SIZE_T PeakVirtualSize;
-    SIZE_T VirtualSize;
-    ULONG PageFaultCount;
-    SIZE_T PeakWorkingSetSize;
-    SIZE_T WorkingSetSize;
-    SIZE_T QuotaPeakPagedPoolUsage;
-    SIZE_T QuotaPagedPoolUsage;
-    SIZE_T QuotaPeakNonPagedPoolUsage;
-    SIZE_T QuotaNonPagedPoolUsage;
-    SIZE_T PagefileUsage;
-    SIZE_T PeakPagefileUsage;
-    SIZE_T PrivateUsage;
+    SIZE_T PeakVirtualSize;             // The peak virtual address space size of this process, in bytes.
+    SIZE_T VirtualSize;                 // The virtual address space size of this process, in bytes.
+    ULONG PageFaultCount;               // The number of page faults.
+    SIZE_T PeakWorkingSetSize;          // The peak working set size, in bytes.
+    SIZE_T WorkingSetSize;              // The current working set size, in bytes
+    SIZE_T QuotaPeakPagedPoolUsage;     // The peak paged pool usage, in bytes.
+    SIZE_T QuotaPagedPoolUsage;         // The current paged pool usage, in bytes.
+    SIZE_T QuotaPeakNonPagedPoolUsage;  // The peak non-paged pool usage, in bytes.
+    SIZE_T QuotaNonPagedPoolUsage;      // The current non-paged pool usage, in bytes.
+    SIZE_T PagefileUsage;               // The Commit Charge value in bytes for this process. Commit Charge is the total amount of private memory that the memory manager has committed for a running process.
+    SIZE_T PeakPagefileUsage;           // The peak value in bytes of the Commit Charge during the lifetime of this process.
+    SIZE_T PrivateUsage;                // Same as PagefileUsage. The Commit Charge value in bytes for this process. Commit Charge is the total amount of private memory that the memory manager has committed for a running process.
 } VM_COUNTERS_EX, *PVM_COUNTERS_EX;
 
+/**
+ * The VM_COUNTERS_EX2 structure extends VM_COUNTERS_EX to include private working set size and shared commit usage.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2
+ */
 typedef struct _VM_COUNTERS_EX2
 {
-    VM_COUNTERS_EX CountersEx;
-    SIZE_T PrivateWorkingSetSize;
-    SIZE_T SharedCommitUsage;
+    union
+    {
+        VM_COUNTERS_EX CountersEx;
+        struct
+        {
+            SIZE_T PeakVirtualSize;             // The peak virtual address space size of this process, in bytes.
+            SIZE_T VirtualSize;                 // The virtual address space size of this process, in bytes.
+            ULONG PageFaultCount;               // The number of page faults.
+            SIZE_T PeakWorkingSetSize;          // The peak working set size, in bytes.
+            SIZE_T WorkingSetSize;              // The current working set size, in bytes
+            SIZE_T QuotaPeakPagedPoolUsage;     // The peak paged pool usage, in bytes.
+            SIZE_T QuotaPagedPoolUsage;         // The current paged pool usage, in bytes.
+            SIZE_T QuotaPeakNonPagedPoolUsage;  // The peak non-paged pool usage, in bytes.
+            SIZE_T QuotaNonPagedPoolUsage;      // The current non-paged pool usage, in bytes.
+            SIZE_T PagefileUsage;               // The Commit Charge value in bytes for this process. Commit Charge is the total amount of private memory that the memory manager has committed for a running process.
+            SIZE_T PeakPagefileUsage;           // The peak value in bytes of the Commit Charge during the lifetime of this process.
+            SIZE_T PrivateUsage;                // Same as PagefileUsage. The Commit Charge value in bytes for this process. Commit Charge is the total amount of private memory that the memory manager has committed for a running process.
+        };
+    };
+    SIZE_T PrivateWorkingSetSize;               // The current private working set size, in bytes.
+    SIZE_T SharedCommitUsage;                   // The current shared commit usage, in bytes.
 } VM_COUNTERS_EX2, *PVM_COUNTERS_EX2;
 
+/**
+ * The KERNEL_USER_TIMES structure contains timing information for a process or thread.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadtimes
+ */
 typedef struct _KERNEL_USER_TIMES
 {
-    LARGE_INTEGER CreateTime;
-    LARGE_INTEGER ExitTime;
-    LARGE_INTEGER KernelTime;
-    LARGE_INTEGER UserTime;
+    LARGE_INTEGER CreateTime;        // The creation time of the process or thread.
+    LARGE_INTEGER ExitTime;          // The exit time of the process or thread.
+    LARGE_INTEGER KernelTime;        // The amount of time the process has executed in kernel mode.
+    LARGE_INTEGER UserTime;          // The amount of time the process has executed in user mode.
 } KERNEL_USER_TIMES, *PKERNEL_USER_TIMES;
 
+/**
+ * The POOLED_USAGE_AND_LIMITS structure contains information about the usage and limits of paged and non-paged pool memory.
+ */
 typedef struct _POOLED_USAGE_AND_LIMITS
 {
-    SIZE_T PeakPagedPoolUsage;
-    SIZE_T PagedPoolUsage;
-    SIZE_T PagedPoolLimit;
-    SIZE_T PeakNonPagedPoolUsage;
-    SIZE_T NonPagedPoolUsage;
-    SIZE_T NonPagedPoolLimit;
-    SIZE_T PeakPagefileUsage;
-    SIZE_T PagefileUsage;
-    SIZE_T PagefileLimit;
+    SIZE_T PeakPagedPoolUsage;       // The peak paged pool usage.
+    SIZE_T PagedPoolUsage;           // The current paged pool usage.
+    SIZE_T PagedPoolLimit;           // The limit on paged pool usage.
+    SIZE_T PeakNonPagedPoolUsage;    // The peak non-paged pool usage.
+    SIZE_T NonPagedPoolUsage;        // The current non-paged pool usage.
+    SIZE_T NonPagedPoolLimit;        // The limit on non-paged pool usage.
+    SIZE_T PeakPagefileUsage;        // The peak pagefile usage.
+    SIZE_T PagefileUsage;            // The current pagefile usage.
+    SIZE_T PagefileLimit;            // The limit on pagefile usage.
 } POOLED_USAGE_AND_LIMITS, *PPOOLED_USAGE_AND_LIMITS;
 
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_BITS 0x00000003
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_FLAGS ((ULONG_PTR)((1UL << PROCESS_EXCEPTION_PORT_ALL_STATE_BITS) - 1))
 
+/**
+ * The PROCESS_EXCEPTION_PORT structure is used to manage exception ports for a process.
+ */
 typedef struct _PROCESS_EXCEPTION_PORT
 {
-    _In_ HANDLE ExceptionPortHandle; // Handle to the exception port. No particular access required.
-    _Inout_ ULONG StateFlags; // Miscellaneous state flags to be cached along with the exception port in the kernel.
+    //
+    // Handle to the exception port. No particular access required.
+    //
+    _In_ HANDLE ExceptionPortHandle;
+
+    //
+    // Miscellaneous state flags to be cached along with the exception
+    // port in the kernel.
+    //
+    _Inout_ ULONG StateFlags;
+
 } PROCESS_EXCEPTION_PORT, *PPROCESS_EXCEPTION_PORT;
 
+/**
+ * The PROCESS_ACCESS_TOKEN structure is used to manage the security context of a process or thread.
+ *
+ * A process's access token can only be changed if the process has no threads or a single thread that has not yet begun execution.
+ */
 typedef struct _PROCESS_ACCESS_TOKEN
 {
-    HANDLE Token; // needs TOKEN_ASSIGN_PRIMARY access
-    HANDLE Thread; // handle to initial/only thread; needs THREAD_QUERY_INFORMATION access
+    //
+    // Handle to Primary token to assign to the process.
+    // TOKEN_ASSIGN_PRIMARY access to this token is needed.
+    //
+    HANDLE Token;
+
+    //
+    // Handle to the initial thread of the process.
+    // THREAD_QUERY_INFORMATION access to this thread is needed.
+    //
+    // N.B. This field is unused.
+    //
+    HANDLE Thread;
+
 } PROCESS_ACCESS_TOKEN, *PPROCESS_ACCESS_TOKEN;
 
+#ifndef _LDT_ENTRY_DEFINED
+#define _LDT_ENTRY_DEFINED
+typedef struct _LDT_ENTRY
+{
+    USHORT LimitLow;
+    USHORT BaseLow;
+    union
+    {
+        struct
+        {
+            UCHAR BaseMid;
+            UCHAR Flags1;
+            UCHAR Flags2;
+            UCHAR BaseHi;
+        } Bytes;
+        struct
+        {
+            ULONG BaseMid : 8;
+            ULONG Type : 5;
+            ULONG Dpl : 2;
+            ULONG Pres : 1;
+            ULONG LimitHi : 4;
+            ULONG Sys : 1;
+            ULONG Reserved_0 : 1;
+            ULONG Default_Big : 1;
+            ULONG Granularity : 1;
+            ULONG BaseHi : 8;
+        } Bits;
+    } HighWord;
+} LDT_ENTRY, *PLDT_ENTRY;
+#endif
+
+/**
+ * The PROCESS_LDT_INFORMATION structure is used to manage Local Descriptor Table (LDT) entries for a process.
+ */
 typedef struct _PROCESS_LDT_INFORMATION
 {
     ULONG Start;
@@ -14875,20 +15922,32 @@ typedef struct _PROCESS_LDT_INFORMATION
     LDT_ENTRY LdtEntries[1];
 } PROCESS_LDT_INFORMATION, *PPROCESS_LDT_INFORMATION;
 
+/**
+ * The PROCESS_LDT_SIZE structure is used to specify the size of the Local Descriptor Table (LDT) for a process.
+ */
 typedef struct _PROCESS_LDT_SIZE
 {
     ULONG Length;
 } PROCESS_LDT_SIZE, *PPROCESS_LDT_SIZE;
 
+/**
+ * The PROCESS_WS_WATCH_INFORMATION structure is used to store information about working set watch events for a process.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information
+ */
 typedef struct _PROCESS_WS_WATCH_INFORMATION
 {
-    PVOID FaultingPc;
-    PVOID FaultingVa;
+    PVOID FaultingPc; // A pointer to the instruction that caused the page fault.
+    PVOID FaultingVa; // A pointer to the page that was added to the working set.
 } PROCESS_WS_WATCH_INFORMATION, *PPROCESS_WS_WATCH_INFORMATION;
 
 #endif
 
-// psapi:PSAPI_WS_WATCH_INFORMATION_EX
+/**
+ * The PROCESS_WS_WATCH_INFORMATION_EX structure contains extended information about a page added to a process working set.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-psapi_ws_watch_information_ex
+ */
 typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
 {
     union
@@ -14896,12 +15955,12 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
         PROCESS_WS_WATCH_INFORMATION BasicInfo;
         struct
         {
-            PVOID FaultingPc;
-            PVOID FaultingVa;
+            PVOID FaultingPc;   // The address of the instruction that caused the page fault.
+            PVOID FaultingVa;   // The virtual address that caused the page fault.
         };
     };
-    ULONG_PTR FaultingThreadId;
-    ULONG_PTR Flags;
+    HANDLE FaultingThreadId;    // The identifier of the thread that caused the page fault.
+    ULONG_PTR Flags;            // This member is reserved for future use.
 } PROCESS_WS_WATCH_INFORMATION_EX, *PPROCESS_WS_WATCH_INFORMATION_EX;
 
 #define PROCESS_PRIORITY_CLASS_UNKNOWN 0
@@ -14912,12 +15971,18 @@ typedef struct _PROCESS_WS_WATCH_INFORMATION_EX
 #define PROCESS_PRIORITY_CLASS_BELOW_NORMAL 5
 #define PROCESS_PRIORITY_CLASS_ABOVE_NORMAL 6
 
+/**
+ * The PROCESS_PRIORITY_CLASS structure is used to manage the priority class of a process.
+ */
 typedef struct _PROCESS_PRIORITY_CLASS
 {
     BOOLEAN Foreground;
     UCHAR PriorityClass;
 } PROCESS_PRIORITY_CLASS, *PPROCESS_PRIORITY_CLASS;
 
+/**
+ * The PROCESS_PRIORITY_CLASS_EX structure extends PROCESS_PRIORITY_CLASS to include validity flags.
+ */
 typedef struct _PROCESS_PRIORITY_CLASS_EX
 {
     union
@@ -14933,6 +15998,9 @@ typedef struct _PROCESS_PRIORITY_CLASS_EX
     BOOLEAN Foreground;
 } PROCESS_PRIORITY_CLASS_EX, *PPROCESS_PRIORITY_CLASS_EX;
 
+/**
+ * The PROCESS_FOREGROUND_BACKGROUND structure is used to manage the the priority class of a process, specifically whether it runs in the foreground or background.
+ */
 typedef struct _PROCESS_FOREGROUND_BACKGROUND
 {
     BOOLEAN Foreground;
@@ -14949,62 +16017,76 @@ typedef struct _PROCESS_FOREGROUND_BACKGROUND
 #define DRIVE_CDROM       5
 #define DRIVE_RAMDISK     6
 
+/**
+ * The PROCESS_DEVICEMAP_INFORMATION structure contains information about a process's device map.
+ */
 typedef struct _PROCESS_DEVICEMAP_INFORMATION
 {
     union
     {
         struct
         {
-            HANDLE DirectoryHandle; // needs DIRECTORY_TRAVERSE access
+            HANDLE DirectoryHandle; // A handle to a directory object that can be set as the new device map for the process. This handle must have DIRECTORY_TRAVERSE access.
         } Set;
         struct
         {
-            ULONG DriveMap; // bit mask
-            UCHAR DriveType[32]; // DRIVE_* WinBase.h
+            ULONG DriveMap;         // A bitmask that indicates which drive letters are currently in use in the process's device map.
+            UCHAR DriveType[32];    // A value that indicates the type of each drive (e.g., local disk, network drive, etc.). // DRIVE_* WinBase.h
         } Query;
     };
 } PROCESS_DEVICEMAP_INFORMATION, *PPROCESS_DEVICEMAP_INFORMATION;
 
 #define PROCESS_LUID_DOSDEVICES_ONLY 0x00000001
 
+/**
+ * The _PROCESS_DEVICEMAP_INFORMATION_EX structure contains information about a process's device map.
+ */
 typedef struct _PROCESS_DEVICEMAP_INFORMATION_EX
 {
     union
     {
         struct
         {
-            HANDLE DirectoryHandle; // needs DIRECTORY_TRAVERSE access
+            HANDLE DirectoryHandle; // A handle to a directory object that can be set as the new device map for the process. This handle must have DIRECTORY_TRAVERSE access.
         } Set;
         struct
         {
-            ULONG DriveMap; // bit mask
-            UCHAR DriveType[32]; // DRIVE_* WinBase.h
+            ULONG DriveMap;         // A bitmask that indicates which drive letters are currently in use in the process's device map.
+            UCHAR DriveType[32];    // A value that indicates the type of each drive (e.g., local disk, network drive, etc.). // DRIVE_* WinBase.h
         } Query;
     };
     ULONG Flags; // PROCESS_LUID_DOSDEVICES_ONLY
 } PROCESS_DEVICEMAP_INFORMATION_EX, *PPROCESS_DEVICEMAP_INFORMATION_EX;
 
+/**
+ * The PROCESS_SESSION_INFORMATION structure is used to store information about the session ID of a process.
+ */
 typedef struct _PROCESS_SESSION_INFORMATION
 {
     ULONG SessionId;
 } PROCESS_SESSION_INFORMATION, *PPROCESS_SESSION_INFORMATION;
 
 #define PROCESS_HANDLE_EXCEPTIONS_ENABLED 0x00000001
-
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_DISABLED 0x00000000
 #define PROCESS_HANDLE_RAISE_EXCEPTION_ON_INVALID_HANDLE_CLOSE_ENABLED 0x00000001
 
+/**
+ * The PROCESS_HANDLE_TRACING_ENABLE structure is used to enable handle tracing for a process.
+ */
 typedef struct _PROCESS_HANDLE_TRACING_ENABLE
 {
-    ULONG Flags;
+    ULONG Flags; // Flags that control handle tracing.
 } PROCESS_HANDLE_TRACING_ENABLE, *PPROCESS_HANDLE_TRACING_ENABLE;
 
 #define PROCESS_HANDLE_TRACING_MAX_SLOTS 0x20000
 
+/**
+ * The PROCESS_HANDLE_TRACING_ENABLE_EX structure extends PROCESS_HANDLE_TRACING_ENABLE to include the total number of slots.
+ */
 typedef struct _PROCESS_HANDLE_TRACING_ENABLE_EX
 {
-    ULONG Flags;
-    ULONG TotalSlots;
+    ULONG Flags;        // Flags that control handle tracing.
+    ULONG TotalSlots;   // Total number of handle tracing slots.
 } PROCESS_HANDLE_TRACING_ENABLE_EX, *PPROCESS_HANDLE_TRACING_ENABLE_EX;
 
 #define PROCESS_HANDLE_TRACING_MAX_STACKS 16
@@ -15030,108 +16112,146 @@ typedef struct _PROCESS_HANDLE_TRACING_QUERY
 
 #endif
 
+/**
+ * The THREAD_TLS_INFORMATION structure contains information about the Thread Local Storage (TLS) data for a thread.
+ */
 typedef struct _THREAD_TLS_INFORMATION
 {
-    ULONG Flags;
-    PVOID NewTlsData;
-    PVOID OldTlsData;
-    HANDLE ThreadId;
+    ULONG Flags;         // Flags that provide additional information about the TLS data.
+    PVOID NewTlsData;    // Pointer to the new TLS data.
+    PVOID OldTlsData;    // Pointer to the old TLS data.
+    HANDLE ThreadId;     // Handle to the thread associated with the TLS data.
 } THREAD_TLS_INFORMATION, *PTHREAD_TLS_INFORMATION;
 
+/**
+ * The PROCESS_TLS_INFORMATION_TYPE enumeration defines the types of TLS operations that can be performed on a process.
+ */
 typedef enum _PROCESS_TLS_INFORMATION_TYPE
 {
-    ProcessTlsReplaceIndex,
-    ProcessTlsReplaceVector,
-    MaxProcessTlsOperation
+    ProcessTlsReplaceIndex,     // Replace the TLS index.
+    ProcessTlsReplaceVector,    // Replace the TLS vector.
+    MaxProcessTlsOperation      // Maximum value for the enumeration.
 } PROCESS_TLS_INFORMATION_TYPE, *PPROCESS_TLS_INFORMATION_TYPE;
 
+/**
+ * The PROCESS_TLS_INFORMATION structure contains information about the TLS operations for a process.
+ */
 typedef struct _PROCESS_TLS_INFORMATION
 {
-    ULONG Flags;
-    ULONG OperationType;
-    ULONG ThreadDataCount;
-    ULONG TlsIndex;
-    ULONG PreviousCount;
-    _Field_size_(ThreadDataCount) THREAD_TLS_INFORMATION ThreadData[1];
+    ULONG Flags;                // Flags that provide additional information about the TLS operation.
+    ULONG OperationType;        // The type of TLS operation to be performed.
+    ULONG ThreadDataCount;      // The number of THREAD_TLS_INFORMATION structures in the ThreadData array.
+    ULONG TlsIndex;             // The TLS index to be replaced.
+    ULONG PreviousCount;        // The previous count of TLS data.
+    _Field_size_(ThreadDataCount) THREAD_TLS_INFORMATION ThreadData[1]; // Array of THREAD_TLS_INFORMATION structures.
 } PROCESS_TLS_INFORMATION, *PPROCESS_TLS_INFORMATION;
 
+/**
+ * The PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION structure contains information about the instrumentation callback for a process.
+ */
 typedef struct _PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION
 {
-    ULONG Version;
-    ULONG Reserved;
-    PVOID Callback;
+    ULONG Version;  // The version of the instrumentation callback information.
+    ULONG Reserved; // Reserved for future use.
+    PVOID Callback; // Pointer to the callback function.
 } PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION, *PPROCESS_INSTRUMENTATION_CALLBACK_INFORMATION;
 
+/**
+ * The PROCESS_STACK_ALLOCATION_INFORMATION structure contains information about the stack allocation for a process.
+ */
 typedef struct _PROCESS_STACK_ALLOCATION_INFORMATION
 {
-    SIZE_T ReserveSize;
-    SIZE_T ZeroBits;
-    PVOID StackBase;
+    SIZE_T ReserveSize; // The size of the stack to be reserved.
+    SIZE_T ZeroBits;    // The number of zero bits in the stack base address.
+    PVOID StackBase;    // Pointer to the base of the stack.
 } PROCESS_STACK_ALLOCATION_INFORMATION, *PPROCESS_STACK_ALLOCATION_INFORMATION;
 
+/**
+ * The PROCESS_STACK_ALLOCATION_INFORMATION_EX structure extends PROCESS_STACK_ALLOCATION_INFORMATION to include additional fields.
+ */
 typedef struct _PROCESS_STACK_ALLOCATION_INFORMATION_EX
 {
-    ULONG PreferredNode;
-    ULONG Reserved0;
-    ULONG Reserved1;
-    ULONG Reserved2;
-    PROCESS_STACK_ALLOCATION_INFORMATION AllocInfo;
+    ULONG PreferredNode; // The preferred NUMA node for the stack allocation.
+    ULONG Reserved0;     // Reserved for future use.
+    ULONG Reserved1;     // Reserved for future use.
+    ULONG Reserved2;     // Reserved for future use.
+    PROCESS_STACK_ALLOCATION_INFORMATION AllocInfo; // The stack allocation information.
 } PROCESS_STACK_ALLOCATION_INFORMATION_EX, *PPROCESS_STACK_ALLOCATION_INFORMATION_EX;
-
+/**
+ * The PROCESS_AFFINITY_UPDATE_MODE union is used to specify the affinity update mode for a process.
+ */
 typedef union _PROCESS_AFFINITY_UPDATE_MODE
 {
     ULONG Flags;
     struct
     {
-        ULONG EnableAutoUpdate : 1;
-        ULONG Permanent : 1;
-        ULONG Reserved : 30;
+        ULONG EnableAutoUpdate : 1; // Indicates whether auto-update of affinity is enabled.
+        ULONG Permanent : 1;        // Indicates whether the affinity update is permanent.
+        ULONG Reserved : 30;        // Reserved for future use.
     };
 } PROCESS_AFFINITY_UPDATE_MODE, *PPROCESS_AFFINITY_UPDATE_MODE;
 
+/**
+ * The PROCESS_MEMORY_ALLOCATION_MODE union is used to specify the memory allocation mode for a process.
+ */
 typedef union _PROCESS_MEMORY_ALLOCATION_MODE
 {
     ULONG Flags;
     struct
     {
-        ULONG TopDown : 1;
-        ULONG Reserved : 31;
+        ULONG TopDown : 1;      // Indicates whether memory allocation should be top-down.
+        ULONG Reserved : 31;    // Reserved for future use.
     };
 } PROCESS_MEMORY_ALLOCATION_MODE, *PPROCESS_MEMORY_ALLOCATION_MODE;
 
+/**
+ * The PROCESS_HANDLE_INFORMATION structure contains information about the handles of a process.
+ */
 typedef struct _PROCESS_HANDLE_INFORMATION
 {
-    ULONG HandleCount;
-    ULONG HandleCountHighWatermark;
+    ULONG HandleCount;              // The number of handles in the process.
+    ULONG HandleCountHighWatermark; // The highest number of handles that the process has had.
 } PROCESS_HANDLE_INFORMATION, *PPROCESS_HANDLE_INFORMATION;
 
+/**
+ * The PROCESS_CYCLE_TIME_INFORMATION structure contains information about the cycle time of a process.
+ */
 typedef struct _PROCESS_CYCLE_TIME_INFORMATION
 {
-    ULONGLONG AccumulatedCycles;
-    ULONGLONG CurrentCycleCount;
+    ULONGLONG AccumulatedCycles; // The total number of cycles accumulated by the process.
+    ULONGLONG CurrentCycleCount; // The current cycle count of the process.
 } PROCESS_CYCLE_TIME_INFORMATION, *PPROCESS_CYCLE_TIME_INFORMATION;
 
+/**
+ * The PROCESS_WINDOW_INFORMATION structure contains information about the windows of a process.
+ */
 typedef struct _PROCESS_WINDOW_INFORMATION
 {
-    ULONG WindowFlags;
-    USHORT WindowTitleLength;
-    _Field_size_bytes_(WindowTitleLength) WCHAR WindowTitle[1];
+    ULONG WindowFlags;          // Flags that provide information about the window.
+    USHORT WindowTitleLength;   // The length of the window title.
+    _Field_size_bytes_(WindowTitleLength) WCHAR WindowTitle[1]; // The title of the window.
 } PROCESS_WINDOW_INFORMATION, *PPROCESS_WINDOW_INFORMATION;
 
+/**
+ * The PROCESS_HANDLE_TABLE_ENTRY_INFO structure contains information about a handle table entry of a process.
+ */
 typedef struct _PROCESS_HANDLE_TABLE_ENTRY_INFO
 {
-    HANDLE HandleValue;
-    SIZE_T HandleCount;
-    SIZE_T PointerCount;
-    ACCESS_MASK GrantedAccess;
-    ULONG ObjectTypeIndex;
-    ULONG HandleAttributes;
-    ULONG Reserved;
+    HANDLE HandleValue;         // The value of the handle.
+    SIZE_T HandleCount;         // The number of references to the handle.
+    SIZE_T PointerCount;        // The number of pointers to the handle.
+    ACCESS_MASK GrantedAccess;  // The access rights granted to the handle.
+    ULONG ObjectTypeIndex;      // The index of the object type.
+    ULONG HandleAttributes;     // The attributes of the handle.
+    ULONG Reserved;             // Reserved for future use.
 } PROCESS_HANDLE_TABLE_ENTRY_INFO, *PPROCESS_HANDLE_TABLE_ENTRY_INFO;
 
+/**
+ * The PROCESS_HANDLE_SNAPSHOT_INFORMATION structure contains information about the handle snapshot of a process.
+ */
 typedef struct _PROCESS_HANDLE_SNAPSHOT_INFORMATION
 {
-    SIZE_T NumberOfHandles;
+    ULONG_PTR NumberOfHandles;
     ULONG_PTR Reserved;
     _Field_size_(NumberOfHandles) PROCESS_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } PROCESS_HANDLE_SNAPSHOT_INFORMATION, *PPROCESS_HANDLE_SNAPSHOT_INFORMATION;
@@ -15260,6 +16380,9 @@ typedef struct _PROCESS_REVOKE_FILE_HANDLES_INFORMATION
 
 #define PROCESS_WORKING_SET_CONTROL_VERSION 3
 
+/**
+ * The PROCESS_WORKING_SET_OPERATION enumeration defines the operation to perform on a process's working set.
+ */
 typedef enum _PROCESS_WORKING_SET_OPERATION
 {
     ProcessWorkingSetSwap,
@@ -15267,6 +16390,9 @@ typedef enum _PROCESS_WORKING_SET_OPERATION
     ProcessWorkingSetOperationMax
 } PROCESS_WORKING_SET_OPERATION;
 
+/**
+ * The PROCESS_WORKING_SET_CONTROL structure is used to control the working set of a process.
+ */
 typedef struct _PROCESS_WORKING_SET_CONTROL
 {
     ULONG Version;
@@ -15274,25 +16400,31 @@ typedef struct _PROCESS_WORKING_SET_CONTROL
     ULONG Flags;
 } PROCESS_WORKING_SET_CONTROL, *PPROCESS_WORKING_SET_CONTROL;
 
+/**
+ * The PS_PROTECTED_TYPE enumeration defines the types of protection that can be applied to a process.
+ */
 typedef enum _PS_PROTECTED_TYPE
 {
-    PsProtectedTypeNone,
-    PsProtectedTypeProtectedLight,
-    PsProtectedTypeProtected,
+    PsProtectedTypeNone,            // No protection.
+    PsProtectedTypeProtectedLight,  // Light protection.
+    PsProtectedTypeProtected,       // Full protection.
     PsProtectedTypeMax
 } PS_PROTECTED_TYPE;
 
+/**
+ * The PS_PROTECTED_SIGNER enumeration defines the types of signers that can be associated with a protected process.
+ */
 typedef enum _PS_PROTECTED_SIGNER
 {
-    PsProtectedSignerNone,
-    PsProtectedSignerAuthenticode,
-    PsProtectedSignerCodeGen,
-    PsProtectedSignerAntimalware,
-    PsProtectedSignerLsa,
-    PsProtectedSignerWindows,
-    PsProtectedSignerWinTcb,
-    PsProtectedSignerWinSystem,
-    PsProtectedSignerApp,
+    PsProtectedSignerNone,          // No signer.
+    PsProtectedSignerAuthenticode,  // Authenticode signer.
+    PsProtectedSignerCodeGen,       // Code generation signer.
+    PsProtectedSignerAntimalware,   // Antimalware signer.
+    PsProtectedSignerLsa,           // Local Security Authority signer.
+    PsProtectedSignerWindows,       // Windows signer.
+    PsProtectedSignerWinTcb,        // Windows Trusted Computing Base signer.
+    PsProtectedSignerWinSystem,     // Windows system signer.
+    PsProtectedSignerApp,           // Application signer.
     PsProtectedSignerMax
 } PS_PROTECTED_SIGNER;
 
@@ -15300,20 +16432,23 @@ typedef enum _PS_PROTECTED_SIGNER
 #define PS_PROTECTED_AUDIT_MASK 0x08
 #define PS_PROTECTED_TYPE_MASK 0x07
 
-// vProtectionLevel.Level = PsProtectedValue(PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
-#define PsProtectedValue(aSigner, aAudit, aType) ( \
-    (((aSigner) & PS_PROTECTED_SIGNER_MASK) << 4) | \
-    (((aAudit) & PS_PROTECTED_AUDIT_MASK) << 3) | \
-    ((aType) & PS_PROTECTED_TYPE_MASK)\
+// ProtectionLevel.Level = PsProtectedValue(PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
+#define PsProtectedValue(PsSigner, PsAudit, PsType) ( \
+    (((PsSigner) & PS_PROTECTED_SIGNER_MASK) << 4) | \
+    (((PsAudit) & PS_PROTECTED_AUDIT_MASK) << 3) | \
+    (((PsType) & PS_PROTECTED_TYPE_MASK)) \
     )
 
-// InitializePsProtection(&vProtectionLevel, PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
-#define InitializePsProtection(aProtectionLevelPtr, aSigner, aAudit, aType) { \
-    (aProtectionLevelPtr)->Signer = aSigner; \
-    (aProtectionLevelPtr)->Audit = aAudit; \
-    (aProtectionLevelPtr)->Type = aType; \
+// InitializePsProtection(&ProtectionLevel, PsProtectedSignerCodeGen, FALSE, PsProtectedTypeProtectedLight)
+#define InitializePsProtection(PsProtectionLevel, PsSigner, PsAudit, PsType) { \
+    (PsProtectionLevel)->Signer = (PsSigner); \
+    (PsProtectionLevel)->Audit = (PsAudit); \
+    (PsProtectionLevel)->Type = (PsType); \
     }
 
+/**
+ * The PS_PROTECTION structure is used to define the protection level of a process.
+ */
 typedef struct _PS_PROTECTION
 {
     union
@@ -15328,33 +16463,42 @@ typedef struct _PS_PROTECTION
     };
 } PS_PROTECTION, *PPS_PROTECTION;
 
+/**
+ * The PROCESS_FAULT_INFORMATION structure contains information about process faults.
+ */
 typedef struct _PROCESS_FAULT_INFORMATION
 {
-    ULONG FaultFlags;
-    ULONG AdditionalInfo;
+    ULONG FaultFlags;       // Flags that provide additional information about the fault.
+    ULONG AdditionalInfo;   // Additional information about the fault.
 } PROCESS_FAULT_INFORMATION, *PPROCESS_FAULT_INFORMATION;
 
+/**
+ * The PROCESS_TELEMETRY_ID_INFORMATION structure contains telemetry information about a process.
+ */
 typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 {
-    ULONG HeaderSize;
-    ULONG ProcessId;
-    ULONGLONG ProcessStartKey;
-    ULONGLONG CreateTime;
-    ULONGLONG CreateInterruptTime;
-    ULONGLONG CreateUnbiasedInterruptTime;
-    ULONGLONG ProcessSequenceNumber;
-    ULONGLONG SessionCreateTime;
-    ULONG SessionId;
-    ULONG BootId;
-    ULONG ImageChecksum;
-    ULONG ImageTimeDateStamp;
-    ULONG UserSidOffset;
-    ULONG ImagePathOffset;
-    ULONG PackageNameOffset;
-    ULONG RelativeAppNameOffset;
-    ULONG CommandLineOffset;
+    ULONG HeaderSize;                       // The size of the structure, in bytes.
+    ULONG ProcessId;                        // The ID of the process.
+    ULONGLONG ProcessStartKey;              // The start key of the process.
+    ULONGLONG CreateTime;                   // The creation time of the process.
+    ULONGLONG CreateInterruptTime;          // The interrupt time at creation.
+    ULONGLONG CreateUnbiasedInterruptTime;  // The unbiased interrupt time at creation.
+    ULONGLONG ProcessSequenceNumber;        // The monotonic sequence number of the process.
+    ULONGLONG SessionCreateTime;            // The session creation time.
+    ULONG SessionId;                        // The ID of the session.
+    ULONG BootId;                           // The boot ID.
+    ULONG ImageChecksum;                    // The checksum of the process image.
+    ULONG ImageTimeDateStamp;               // The timestamp of the process image.
+    ULONG UserSidOffset;                    // The offset to the user SID.
+    ULONG ImagePathOffset;                  // The offset to the image path.
+    ULONG PackageNameOffset;                // The offset to the package name.
+    ULONG RelativeAppNameOffset;            // The offset to the relative application name.
+    ULONG CommandLineOffset;                // The offset to the command line.
 } PROCESS_TELEMETRY_ID_INFORMATION, *PPROCESS_TELEMETRY_ID_INFORMATION;
 
+/**
+ * The PROCESS_COMMIT_RELEASE_INFORMATION structure contains information about the commit and release of memory for a process.
+ */
 typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
 {
     ULONG Version;
@@ -15370,33 +16514,45 @@ typedef struct _PROCESS_COMMIT_RELEASE_INFORMATION
     SIZE_T RepurposedMemResetSize;
 } PROCESS_COMMIT_RELEASE_INFORMATION, *PPROCESS_COMMIT_RELEASE_INFORMATION;
 
+/**
+ * The PROCESS_JOB_MEMORY_INFO structure contains Represents app memory usage at a single point in time.
+ *
+ * \remarks https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/ns-processthreadsapi-app_memory_information
+ */
 typedef struct _PROCESS_JOB_MEMORY_INFO
 {
-    ULONGLONG SharedCommitUsage;
-    ULONGLONG PrivateCommitUsage;
-    ULONGLONG PeakPrivateCommitUsage;
-    ULONGLONG PrivateCommitLimit;
-    ULONGLONG TotalCommitLimit;
+    ULONGLONG SharedCommitUsage;        // The current shared commit usage, in bytes.
+    ULONGLONG PrivateCommitUsage;       // The current private commit usage, in bytes.
+    ULONGLONG PeakPrivateCommitUsage;   // The peak private commit usage, in bytes.
+    ULONGLONG PrivateCommitLimit;       // The private commit limit, in bytes.
+    ULONGLONG TotalCommitLimit;         // The total commit limit, in bytes.
 } PROCESS_JOB_MEMORY_INFO, *PPROCESS_JOB_MEMORY_INFO;
 
+/**
+ * The PROCESS_CHILD_PROCESS_INFORMATION structure contains information about child process policies.
+ */
 typedef struct _PROCESS_CHILD_PROCESS_INFORMATION
 {
-    BOOLEAN ProhibitChildProcesses;
-    BOOLEAN AlwaysAllowSecureChildProcess; // REDSTONE3
-    BOOLEAN AuditProhibitChildProcesses;
+    BOOLEAN ProhibitChildProcesses;         // Child processes are prohibited.
+    BOOLEAN AlwaysAllowSecureChildProcess;  // Secure child processes are always allowed.
+    BOOLEAN AuditProhibitChildProcesses;    // Child processes are audited.
 } PROCESS_CHILD_PROCESS_INFORMATION, *PPROCESS_CHILD_PROCESS_INFORMATION;
 
 #define POWER_THROTTLING_PROCESS_CURRENT_VERSION 1
 #define POWER_THROTTLING_PROCESS_EXECUTION_SPEED 0x1
 #define POWER_THROTTLING_PROCESS_DELAYTIMERS 0x2
 #define POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION 0x4 // since WIN11
-#define POWER_THROTTLING_PROCESS_VALID_FLAGS ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED | POWER_THROTTLING_PROCESS_DELAYTIMERS | POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
+#define POWER_THROTTLING_PROCESS_VALID_FLAGS \
+    ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED | POWER_THROTTLING_PROCESS_DELAYTIMERS | POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
 
+/**
+ * The POWER_THROTTLING_PROCESS_STATE structure is used to manage the power throttling state of a process.
+ */
 typedef struct _POWER_THROTTLING_PROCESS_STATE
 {
-    ULONG Version;
-    ULONG ControlMask;
-    ULONG StateMask;
+    ULONG Version;       // The version of the structure.
+    ULONG ControlMask;   // A mask that specifies the control settings for power throttling.
+    ULONG StateMask;     // A mask that specifies the current state of power throttling.
 } POWER_THROTTLING_PROCESS_STATE, *PPOWER_THROTTLING_PROCESS_STATE;
 
 // rev (tyranid)
@@ -15643,9 +16799,9 @@ typedef struct _SCHEDULER_SHARED_DATA_SLOT_INFORMATION
 
 typedef struct _THREAD_TEB_INFORMATION
 {
-    PVOID TebInformation; // buffer to place data in
-    ULONG TebOffset; // offset in TEB to begin reading from
-    ULONG BytesToRead; // number of bytes to read
+    _Inout_bytecount_(BytesToRead) PVOID TebInformation; // Buffer to write data into.
+    _In_ ULONG TebOffset;                                // Offset in TEB to begin reading from.
+    _In_ ULONG BytesToRead;                              // Number of bytes to read.
 } THREAD_TEB_INFORMATION, *PTHREAD_TEB_INFORMATION;
 
 /**
@@ -15673,15 +16829,15 @@ typedef struct _COUNTER_READING
 typedef struct _THREAD_PERFORMANCE_DATA
 {
     USHORT Size;                                    // The size of the structure.
-    USHORT Version;                                 // The version of the structure. Must be set to PERFORMANCE_DATA_VERSION.
+    USHORT Version;                                 // The version of the structure. Must be set to \ref THREAD_PERFORMANCE_DATA_VERSION.
     PROCESSOR_NUMBER ProcessorNumber;               // The processor number that identifies where the thread is running.
     ULONG ContextSwitches;                          // The number of context switches that occurred from the time profiling was enabled.
     ULONG HwCountersCount;                          // The number of array elements in the HwCounters array that contain hardware counter data.
     ULONG64 UpdateCount;                            // The number of times that the read operation read the data to ensure a consistent snapshot of the data.
-    ULONG64 WaitReasonBitMap;                       // A bitmask of KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
+    ULONG64 WaitReasonBitMap;                       // A bitmask of \ref KWAIT_REASON that identifies the reasons for the context switches that occurred since the last time the data was read.
     ULONG64 HardwareCounters;                       // A bitmask of hardware counters used to collect counter data.
     COUNTER_READING CycleTime;                      // The cycle time of the thread (excludes the time spent interrupted) from the time profiling was enabled.
-    COUNTER_READING HwCounters[MAX_HW_COUNTERS];    // The COUNTER_READING structure that contains hardware counter data.
+    COUNTER_READING HwCounters[MAX_HW_COUNTERS];    // The \ref COUNTER_READING structure that contains hardware counter data.
 } THREAD_PERFORMANCE_DATA, *PTHREAD_PERFORMANCE_DATA;
 
 #ifndef THREAD_PROFILING_FLAG_DISPATCH
@@ -15704,7 +16860,7 @@ typedef struct _THREAD_PROFILING_INFORMATION
     // performance counters that you configured. Set to zero if you are not collecting hardware counter data.
     // If you set a bit for a hardware counter that has not been configured, the counter value that is read for that counter is zero.
     ULONG64 HardwareCounters;
-    // To receive thread profiling data such as context switch count, set this parameter to THREAD_PROFILING_FLAG_DISPATCH.
+    // To receive thread profiling data such as context switch count, set this parameter to \ref THREAD_PROFILING_FLAG_DISPATCH.
     ULONG Flags;
     // Enable or disable thread profiling on the specified thread.
     ULONG Enable;
@@ -16076,7 +17232,7 @@ NtResumeProcess(
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #define NtCurrentImageBase() ((PIMAGE_DOS_HEADER)&__ImageBase)
 
-#define NtCurrentSessionId() (RtlGetActiveConsoleId())
+#define NtCurrentSessionId() (RtlGetActiveConsoleId()) // USER_SHARED_DATA->ActiveConsoleId
 #define NtCurrentLogonId() (NtCurrentPeb()->LogonId)
 
 /**
@@ -16112,58 +17268,6 @@ NtWow64QueryInformationProcess64(
     _Out_opt_ PULONG ReturnLength
     );
 
-#define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
-
-#if (PHNT_VERSION >= PHNT_WS03)
-/**
- * Retrieves a handle to the next process in the system.
- *
- * @param ProcessHandle An optional handle to a process. If this parameter is NULL, the function retrieves the first process in the system.
- * @param DesiredAccess The access rights desired for the new process handle.
- * @param HandleAttributes The attributes for the new process handle.
- * @param Flags Flags that modify the behavior of the function. This can be a combination of the following flags:
- * - PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS (0x00000001): Retrieve the previous process in the system.
- * @param NewProcessHandle A pointer to a variable that receives the handle to the next process.
- * @return NTSTATUS Successful or errant status.
- */
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtGetNextProcess(
-    _In_opt_ HANDLE ProcessHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG HandleAttributes,
-    _In_ ULONG Flags,
-    _Out_ PHANDLE NewProcessHandle
-    );
-#endif
-
-#if (PHNT_VERSION >= PHNT_WS03)
-/**
- * Retrieves a handle to the next thread in the system.
- *
- * @param ProcessHandle A handle to the process for enumerateration of threads.
- * @param ThreadHandle An optional handle to a thread. If this parameter is NULL, the function retrieves the first thread in the process.
- * @param DesiredAccess The access rights desired for the new process handle.
- * @param HandleAttributes The attributes for the new process handle.
- * @param Flags Flags that modify the behavior of the function. This can be a combination of the following flags:
- * - THREAD_GET_NEXT_FLAGS_PREVIOUS_THREAD (0x00000001): Retrieve the previous thread in the process.
- * @param NewProcessHandle A pointer to a variable that receives the handle to the next process.
- * @return NTSTATUS Successful or errant status.
- */
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtGetNextThread(
-    _In_ HANDLE ProcessHandle,
-    _In_opt_ HANDLE ThreadHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_ ULONG HandleAttributes,
-    _In_ ULONG Flags,
-    _Out_ PHANDLE NewThreadHandle
-    );
-#endif
-
 /**
  * Sets information for the specified process.
  *
@@ -16182,6 +17286,56 @@ NtSetInformationProcess(
     _In_reads_bytes_(ProcessInformationLength) PVOID ProcessInformation,
     _In_ ULONG ProcessInformationLength
     );
+
+#define PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS 0x00000001
+
+#if (PHNT_VERSION >= PHNT_WS03)
+/**
+ * Retrieves a handle to the next process in the system.
+ *
+ * @param ProcessHandle An optional handle to a process. If this parameter is NULL, the function retrieves the first process in the system.
+ * @param DesiredAccess The access rights desired for the new process handle.
+ * @param HandleAttributes The attributes for the new process handle.
+ * @param Flags Flags that modify the behavior of the function. This can be a combination of the following flags:
+ * - \ref PROCESS_GET_NEXT_FLAGS_PREVIOUS_PROCESS (0x00000001): Retrieve the previous process in the system.
+ * @param NewProcessHandle A pointer to a variable that receives the handle to the next process.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetNextProcess(
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE NewProcessHandle
+    );
+
+/**
+ * Retrieves a handle to the next thread in the system.
+ *
+ * @param ProcessHandle A handle to the process for enumerateration of threads.
+ * @param ThreadHandle An optional handle to a thread. If this parameter is NULL, the function retrieves the first thread in the process.
+ * @param DesiredAccess The access rights desired for the new thread handle.
+ * @param HandleAttributes The attributes for the new thread handle.
+ * @param Flags Flags that modify the behavior of the function. This can be a combination of the following flags:
+ * - \ref THREAD_GET_NEXT_FLAGS_PREVIOUS_THREAD (0x00000001): Retrieve the previous thread in the process.
+ * @param NewThreadHandle A pointer to a variable that receives the handle to the next thread.
+ * @return NTSTATUS Successful or errant status.
+ */
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtGetNextThread(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ HANDLE ThreadHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ ULONG HandleAttributes,
+    _In_ ULONG Flags,
+    _Out_ PHANDLE NewThreadHandle
+    );
+#endif
 
 #endif
 
@@ -16238,7 +17392,6 @@ NtChangeProcessState(
     _In_opt_ _Reserved_ SIZE_T ExtendedInformationLength,
     _In_opt_ _Reserved_ ULONG64 Reserved
     );
-
 #endif
 
 typedef enum _THREAD_STATE_CHANGE_TYPE
@@ -16249,7 +17402,6 @@ typedef enum _THREAD_STATE_CHANGE_TYPE
 } THREAD_STATE_CHANGE_TYPE, *PTHREAD_STATE_CHANGE_TYPE;
 
 #if (PHNT_VERSION >= PHNT_WIN11)
-
 /**
  * Creates a state change handle for changing the suspension state of a thread.
  *
@@ -16293,7 +17445,6 @@ NtChangeThreadState(
     _In_opt_ SIZE_T ExtendedInformationLength,
     _In_opt_ ULONG64 Reserved
     );
-
 #endif
 
 //
@@ -16545,6 +17696,13 @@ NtAlertThreadByThreadId(
 #endif
 
 #if (PHNT_VERSION >= PHNT_WIN11)
+/**
+ * Sends an alert to the specified thread by its thread ID, with an optional lock.
+ *
+ * @param ThreadId The thread ID of the thread to be alerted.
+ * @param Lock An optional pointer to an SRW lock to be used during the alert.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -16553,7 +17711,15 @@ NtAlertThreadByThreadIdEx(
     _In_opt_ PRTL_SRWLOCK Lock
     );
 
-// rev
+/**
+ * Sends an alert to multiple threads by their thread IDs.
+ *
+ * @param MultipleThreadId A pointer to an array of thread IDs to be alerted.
+ * @param Count The number of thread IDs in the array.
+ * @param Boost A pointer to a boost value to be applied to the threads.
+ * @param BoostCount The number of boost values in the array.
+ * @return NTSTATUS Successful or errant status.
+ */
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -17971,7 +19137,6 @@ PssNtQuerySnapshot(
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_ ULONG BufferLength
     );
-
 #endif
 
 // rev
@@ -20603,7 +21768,7 @@ NtCreateIoCompletion(
     _Out_ PHANDLE IoCompletionHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ ULONG Count
+    _In_opt_ ULONG NumberOfConcurrentThreads
     );
 
 NTSYSCALLAPI
@@ -29338,6 +30503,7 @@ RtlCreateUserProcessEx(
 #endif
 
 #if (PHNT_VERSION >= PHNT_VISTA)
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -29517,6 +30683,7 @@ RtlCreateUserThread(
     );
 
 #if (PHNT_VERSION >= PHNT_WINXP)
+_Analysis_noreturn_
 DECLSPEC_NORETURN
 NTSYSAPI
 VOID
@@ -33084,6 +34251,9 @@ RtlSetTimeZoneInformation(
 #define RtlInterlockedClearBitsDiscardReturn(Flags, Flag) \
     RtlInterlockedAndBitsDiscardReturn(Flags, ~(Flag))
 
+#define RtlInterlockedTestBits(Flags, Flag) \
+    ((InterlockedOr((PLONG)(Flags), 0) & (Flag)) == (Flag)) // dmex
+
 // Bitmaps
 
 typedef struct _RTL_BITMAP
@@ -36339,7 +37509,7 @@ NTSTATUS
 NTAPI
 RtlProcessFlsData(
     _In_ HANDLE ProcessHandle,
-    _Out_ PPVOID FlsData
+    _Out_ PVOID* FlsData
     );
 #endif
 
@@ -39712,6 +40882,7 @@ RtlDispatchException(
     _In_ PCONTEXT ContextRecord
     );
 
+_Analysis_noreturn_
 NTSYSAPI
 DECLSPEC_NORETURN
 VOID
@@ -39737,6 +40908,7 @@ RtlRaiseExceptionForReturnAddressHijack(
     );
 
 // rev
+_Analysis_noreturn_
 NTSYSAPI
 DECLSPEC_NORETURN
 VOID
@@ -39803,6 +40975,7 @@ NtRaiseException(
     _In_ BOOLEAN FirstChance
     );
 
+_Analysis_noreturn_
 NTSYSCALLAPI
 DECLSPEC_NORETURN
 VOID
@@ -40472,8 +41645,8 @@ FORCEINLINE VOID UStrToUStr32(
 //
 // Get the 32-bit TEB without doing a memory reference.
 //
-#define WOW64_GET_TEB32(teb64) ((PTEB32)(PVOID)RtlOffsetToPointer((teb64), WOW64_ROUND_TO_PAGES(sizeof(TEB))))
-#define WOW64_TEB32_POINTER_ADDRESS(teb64) (PVOID)&((teb64)->NtTib.ExceptionList)
+#define WOW64_GET_TEB32(teb64) ((PTEB32)(((ULONG_PTR)(teb64)) + ((ULONG_PTR)WOW64_ROUND_TO_PAGES(sizeof(TEB)))))
+#define WOW64_TEB32_POINTER_ADDRESS(teb64) ((PVOID)&(((PTEB)(teb64))->NtTib.ExceptionList))
 
 typedef union _WOW64_EXECUTE_OPTIONS
 {
@@ -48261,7 +49434,7 @@ typedef struct _ETW_UMGL_KEY
 #define EVENT_TRACE_USE_RAWTIMESTAMP 0x00000002
 // Used with OpenTrace(), retrieves event from file as is.
 #define EVENT_TRACE_GET_RAWEVENT 0x00000100
-// Used with OpenTrace() to ReadBehind  a live logger session
+// Used with OpenTrace() to ReadBehind a live logger session.
 #define EVENT_TRACE_READ_BEHIND 0x00000200
 // Used in EventCallbacks to indicate that the InstanceId field is a sequence number.
 #define EVENT_TRACE_USE_SEQUENCE  0x0004
@@ -54663,6 +55836,34 @@ NtUserGetProcessWindowStation(
     );
 
 NTSYSCALLAPI
+HWND
+NTAPI
+NtUserGhostWindowFromHungWindow(
+    _In_ HWND WindowHandle
+    );
+
+NTSYSCALLAPI
+HWND
+NTAPI
+NtUserHungWindowFromGhostWindow(
+    _In_ HWND WindowHandle
+    );
+
+NTSYSAPI
+HWND
+NTAPI
+GhostWindowFromHungWindow(
+    _In_ HWND WindowHandle
+    );
+
+NTSYSAPI
+HWND
+NTAPI
+HungWindowFromGhostWindow(
+    _In_ HWND WindowHandle
+    );
+
+NTSYSCALLAPI
 LOGICAL
 NTAPI
 NtUserCloseWindowStation(
@@ -54684,6 +55885,21 @@ SetWindowStationUser(
     _In_ PLUID UserLogonId,
     _In_ PSID UserSid,
     _In_ ULONG UserSidLength
+    );
+
+NTSYSCALLAPI
+LOGICAL
+NTAPI
+NtUserSetChildWindowNoActivate(
+    _In_ HWND WindowHandle
+    );
+
+// User32 ordinal 2005
+NTSYSCALLAPI
+LOGICAL
+NTAPI
+SetChildWindowNoActivate(
+    _In_ HWND WindowHandle
     );
 
 NTSYSCALLAPI
@@ -55003,7 +56219,9 @@ NtUserGetCurrentInputMessageSource(
 NTSYSCALLAPI
 HCURSOR
 NTAPI
-NtUserGetCursor();
+NtUserGetCursor(
+    VOID
+    );
 
 NTSYSCALLAPI
 BOOL
@@ -55031,7 +56249,9 @@ NtUserGetDisplayAutoRotationPreferences(
 NTSYSCALLAPI
 ULONG
 NTAPI
-NtUserGetDoubleClickTime();
+NtUserGetDoubleClickTime(
+    VOID
+    );
 
 NTSYSCALLAPI
 BOOL
@@ -55737,6 +56957,2813 @@ typedef struct _KERNEL_CALLBACK_TABLE
 } KERNEL_CALLBACK_TABLE, *PKERNEL_CALLBACK_TABLE;
 
 #endif  // _NTUSER_H
+
+/*
+ * Definitions that describe SMBIOS - https://www.dmtf.org/standards/smbios
+ *
+ * This file is part of System Informer.
+ */
+
+#ifndef _SMBIOS_H
+#define _SMBIOS_H
+
+typedef struct RAW_SMBIOS_DATA
+{
+    UCHAR Used20CallingMethod;
+    UCHAR SMBIOSMajorVersion;
+    UCHAR SMBIOSMinorVersion;
+    UCHAR DmiRevision;
+    ULONG Length;
+    UCHAR SMBIOSTableData[ANYSIZE_ARRAY];
+} RAW_SMBIOS_DATA, *PRAW_SMBIOS_DATA;
+
+#include <pshpack1.h>
+
+#define SMBIOS_INVALID_HANDLE  ((USHORT)0x0FFFF)
+#define SMBIOS_INVALID_STRING  ((UCHAR)0)
+#define SMBIOS_STRING_TABLE(x) (PVOID)((ULONG_PTR)x + x->Length)
+
+#define SMBIOS_PROBE_STATUS_OTHER                     ((UCHAR)1)
+#define SMBIOS_PROBE_STATUS_UNKNOWN                   ((UCHAR)2)
+#define SMBIOS_PROBE_STATUS_OK                        ((UCHAR)3)
+#define SMBIOS_PROBE_STATUS_NON_CRITICAL              ((UCHAR)4)
+#define SMBIOS_PROBE_STATUS_CRITICAL                  ((UCHAR)5)
+#define SMBIOS_PROBE_STATUS_NON_RECOVERABLE           ((UCHAR)6)
+
+#define SMBIOS_MEMORY_ERROR_TYPE_OTHER                ((UCHAR)1)
+#define SMBIOS_MEMORY_ERROR_TYPE_UNKNOWN              ((UCHAR)2)
+#define SMBIOS_MEMORY_ERROR_TYPE_OK                   ((UCHAR)3)
+#define SMBIOS_MEMORY_ERROR_TYPE_BAD_READ             ((UCHAR)4)
+#define SMBIOS_MEMORY_ERROR_TYPE_PARITY               ((UCHAR)5)
+#define SMBIOS_MEMORY_ERROR_TYPE_SINGLE_BIT           ((UCHAR)6)
+#define SMBIOS_MEMORY_ERROR_TYPE_DOUBLE_BIT           ((UCHAR)7)
+#define SMBIOS_MEMORY_ERROR_TYPE_MULTI_BIT            ((UCHAR)8)
+#define SMBIOS_MEMORY_ERROR_TYPE_NIBBLE               ((UCHAR)9)
+#define SMBIOS_MEMORY_ERROR_TYPE_CHECKSUM             ((UCHAR)10)
+#define SMBIOS_MEMORY_ERROR_TYPE_CRC                  ((UCHAR)11)
+#define SMBIOS_MEMORY_ERROR_TYPE_CORRECTED_SINGLE_BIT ((UCHAR)12)
+#define SMBIOS_MEMORY_ERROR_TYPE_CORRECTED            ((UCHAR)13)
+#define SMBIOS_MEMORY_ERROR_TYPE_UNCORRECTABLE        ((UCHAR)14)
+
+#define SMBIOS_MEMORY_ERROR_GRANULARITY_OTHER         ((UCHAR)1)
+#define SMBIOS_MEMORY_ERROR_GRANULARITY_UNKNOWN       ((UCHAR)2)
+#define SMBIOS_MEMORY_ERROR_GRANULARITY_DEVICE        ((UCHAR)3)
+#define SMBIOS_MEMORY_ERROR_GRANULARITY_PARTITION     ((UCHAR)4)
+
+#define SMBIOS_MEMORY_ERROR_OPERATION_OTHER           ((UCHAR)1)
+#define SMBIOS_MEMORY_ERROR_OPERATION_UNKNOWN         ((UCHAR)2)
+#define SMBIOS_MEMORY_ERROR_OPERATION_READ            ((UCHAR)3)
+#define SMBIOS_MEMORY_ERROR_OPERATION_WRITE           ((UCHAR)4)
+#define SMBIOS_MEMORY_ERROR_OPERATION_PARTIAL_WRITE   ((UCHAR)5)
+
+typedef struct _SMBIOS_ENTRY_POINT_2_1
+{
+    UCHAR Signature[4];             // _SM_ (ASCII)
+    UCHAR Checksum;
+    UCHAR Length;
+    UCHAR MajorVersion;
+    UCHAR MinorVersion;
+    USHORT MaximumStructureSize;
+    UCHAR EntryPointRevision;
+    UCHAR Reserved[5];
+    UCHAR Signature2[5];           // _DMI_ (ASCII)
+    UCHAR IntermediateChecksum;
+    USHORT StructureTableLength;
+    ULONG StructureTableAddress;
+    USHORT NumberStructures;
+    UCHAR Revision;
+} SMBIOS_ENTRY_POINT_2_1, *PSMBIOS_ENTRY_POINT_2_1;
+
+C_ASSERT(sizeof(SMBIOS_ENTRY_POINT_2_1) == 0X1F);
+
+typedef struct _SMBIOS_ENTRY_POINT_3_0
+{
+    UCHAR Signature[5];             // _SM3_ (ASCII)
+    UCHAR Checksum;
+    UCHAR Length;
+    UCHAR MajorVersion;
+    UCHAR MinorVersion;
+    UCHAR DocumentRevision;
+    UCHAR EntryPointRevision;
+    UCHAR Reserved;
+    ULONG MaximumStructureSize;
+    ULONGLONG StructureTableAddress;
+} SMBIOS_ENTRY_POINT_3_0, *PSMBIOS_ENTRY_POINT_3_0;
+
+C_ASSERT(sizeof(SMBIOS_ENTRY_POINT_3_0) == 0x18);
+
+typedef struct _SMBIOS_HEADER
+{
+    UCHAR Type;
+    UCHAR Length;
+    USHORT Handle;
+} SMBIOS_HEADER, *PSMBIOS_HEADER;
+
+C_ASSERT(sizeof(SMBIOS_HEADER) == 4);
+
+typedef struct _SMBIOS_GENERIC
+{
+    UCHAR Type;
+    UCHAR Length;
+    USHORT Handle;
+    UCHAR Data[ANYSIZE_ARRAY];
+} SMBIOS_GENERIC, *PSMBIOS_GENERIC;
+
+//
+// Platform Firmware Information (Type 0)
+//
+
+#define SMBIOS_FIRMWARE_INFORMATION_TYPE ((UCHAR)0)
+
+typedef struct _SMBIOS_FIRMWARE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR Vendor;                  // string
+    UCHAR Version;                 // string
+    USHORT StartingAddressSegment;
+    UCHAR ReleaseDate;             // string
+    UCHAR RomSize;
+    ULONGLONG Characteristics;     // SMBIOS_FIRMWARE_FLAG_*
+    // 2.4+
+    USHORT Characteristics2;       // SMBIOS_FIRMWARE_FLAG_2_*
+    UCHAR MajorRelease;
+    UCHAR MinorRelease;
+    UCHAR ControllerMajorRelease;
+    UCHAR ControllerMinorRelease;
+    // 3.1+
+    union
+    {
+        struct
+        {
+            USHORT Unit : 2;       // SMBIOS_FIRMWARE_ROM_UNIT_*
+            USHORT Size : 14;
+        };
+
+        USHORT Value;
+    } RomSize2;
+} SMBIOS_FIRMWARE_INFORMATION, *PSMBIOS_FIRMWARE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_FIRMWARE_INFORMATION) == 0x1A);
+
+#define SMBIOS_FIRMWARE_FLAG_RESERVED_0                   0x0000000000000001UL
+#define SMBIOS_FIRMWARE_FLAG_RESERVED_1                   0x0000000000000002UL
+#define SMBIOS_FIRMWARE_FLAG_UNKNOWN                      0x0000000000000004UL
+#define SMBIOS_FIRMWARE_FLAG_NOT_SUPPORTED                0x0000000000000008UL
+#define SMBIOS_FIRMWARE_FLAG_ISA_SUPPORTED                0x0000000000000010UL
+#define SMBIOS_FIRMWARE_FLAG_MCA_SUPPORTED                0x0000000000000020UL
+#define SMBIOS_FIRMWARE_FLAG_EISA_SUPPORTED               0x0000000000000040UL
+#define SMBIOS_FIRMWARE_FLAG_PCI_SUPPORTED                0x0000000000000080UL
+#define SMBIOS_FIRMWARE_FLAG_PCMCIA_SUPPORTED             0x0000000000000100UL
+#define SMBIOS_FIRMWARE_FLAG_PNP_SUPPORTED                0x0000000000000200UL
+#define SMBIOS_FIRMWARE_FLAG_APM_SUPPORTED                0x0000000000000400UL
+#define SMBIOS_FIRMWARE_FLAG_UPGRADE_SUPPORTED            0x0000000000000800UL
+#define SMBIOS_FIRMWARE_FLAG_SHADOWING_SUPPORTED          0x0000000000001000UL
+#define SMBIOS_FIRMWARE_FLAG_VL_VESA_SUPPORTED            0x0000000000002000UL
+#define SMBIOS_FIRMWARE_FLAG_ESCD_SUPPORTED               0x0000000000004000UL
+#define SMBIOS_FIRMWARE_FLAG_BOOT_FROM_CD_SUPPORTED       0x0000000000008000UL
+#define SMBIOS_FIRMWARE_FLAG_SELECTABLE_BOOT_SUPPORTED    0x0000000000010000UL
+#define SMBIOS_FIRMWARE_FLAG_ROM_SOCKETED                 0x0000000000020000UL
+#define SMBIOS_FIRMWARE_FLAG_PCMCIA_BOOT_SUPPORTED        0x0000000000040000UL
+#define SMBIOS_FIRMWARE_FLAG_EDD_SUPPORTED                0x0000000000080000UL
+#define SMBIOS_FIRMWARE_FLAG_FLOPPY_NEC_9800_SUPPORTED    0x0000000000100000UL
+#define SMBIOS_FIRMWARE_FLAG_FLOPPY_TOSHIBA_SUPPORTED     0x0000000000200000UL
+#define SMBIOS_FIRMWARE_FLAG_FLOPPY_5_25_360KB_SUPPORTED  0x0000000000400000UL
+#define SMBIOS_FIRMWARE_FLAG_FLOPPY_5_25_1_2_MB_SUPPORTED 0x0000000000800000UL
+#define SMBIOS_FIRMWARE_FLAG_FLOPPY_3_5_720KB_SUPPORTED   0x0000000001000000UL
+#define SMBIOS_FIRMWARE_FLAG_FLOPPY_3_5_2_88MB_SUPPORTED  0x0000000002000000UL
+#define SMBIOS_FIRMWARE_FLAG_PRINT_SCREEN_SUPPORTED       0x0000000004000000UL
+#define SMBIOS_FIRMWARE_FLAG_8042_KEYBOARD_SUPPORTED      0x0000000008000000UL
+#define SMBIOS_FIRMWARE_FLAG_SERIAL_SUPPORTED             0x0000000010000000UL
+#define SMBIOS_FIRMWARE_FLAG_PRINTER_SUPPORTED            0x0000000020000000UL
+#define SMBIOS_FIRMWARE_FLAG_CGA_VIDEO_SUPPORTED          0x0000000040000000UL
+#define SMBIOS_FIRMWARE_FLAG_NEC_PC_98                    0x0000000080000000UL
+#define SMBIOS_FIRMWARE_FLAG_PLATFORM_RESERVED            0x0000FFFF00000000UL
+#define SMBIOS_FIRMWARE_FLAG_SYSTEM_RESERVED              0xFFFF000000000000UL
+
+#define SMBIOS_FIRMWARE_FLAG_2_ACPI_SUPPORTED                 ((USHORT)0x0001)
+#define SMBIOS_FIRMWARE_FLAG_2_USB_LEGACY_SUPPORTED           ((USHORT)0x0002)
+#define SMBIOS_FIRMWARE_FLAG_2_AGP_SUPPORTED                  ((USHORT)0x0004)
+#define SMBIOS_FIRMWARE_FLAG_2_I20_BOOT_SUPPORTED             ((USHORT)0x0008)
+#define SMBIOS_FIRMWARE_FLAG_2_LS_120_BOOT_SUPPORTED          ((USHORT)0x0010)
+#define SMBIOS_FIRMWARE_FLAG_2_ZIP_BOOT_SUPPORTED             ((USHORT)0x0020)
+#define SMBIOS_FIRMWARE_FLAG_2_1394_BOOT_SUPPORTED            ((USHORT)0x0040)
+#define SMBIOS_FIRMWARE_FLAG_2_SMART_BATTERY_SUPPORTED        ((USHORT)0x0080)
+#define SMBIOS_FIRMWARE_FLAG_2_BIOS_BOOT_SUPPORTED            ((USHORT)0x0100)
+#define SMBIOS_FIRMWARE_FLAG_2_FN_KEY_NET_BOOT_SUPPORTED      ((USHORT)0x0200)
+#define SMBIOS_FIRMWARE_FLAG_2_CONTENT_DISTRIBUTION_SUPPORTED ((USHORT)0x0400)
+#define SMBIOS_FIRMWARE_FLAG_2_UEFI_SUPPORTED                 ((USHORT)0x0800)
+#define SMBIOS_FIRMWARE_FLAG_2_MANUFACTURING_MODE_ENABLED     ((USHORT)0x1000)
+#define SMBIOS_FIRMWARE_FLAG_2_RESERVED                       ((USHORT)0xE000)
+
+#define SMBIOS_FIRMWARE_ROM_UNIT_MB         0
+#define SMBIOS_FIRMWARE_ROM_UNIT_GB         1
+#define SMBIOS_FIRMWARE_ROM_UNIT_RESERVED_1 2
+#define SMBIOS_FIRMWARE_ROM_UNIT_RESERVED_2 3
+
+//
+// System Information (Type 1)
+//
+
+#define SMBIOS_SYSTEM_INFORMATION_TYPE ((UCHAR)1)
+
+typedef struct _SMBIOS_SYSTEM_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR Manufacturer; // string
+    UCHAR ProductName;  // string
+    UCHAR Version;      // string
+    UCHAR SerialNumber; // string
+    // 2.1+
+    GUID UniqueID;
+    UCHAR WakeUpType;   // SMBIOS_SYSTEM_WAKE_UP_TYPE
+    // 2.4+
+    UCHAR SKUNumber;    // string
+    UCHAR Family;       // string
+} SMBIOS_SYSTEM_INFORMATION, *PSMBIOS_SYSTEM_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_INFORMATION) == 0x1B);
+
+#define SMBIOS_SYSTEM_WAKE_UP_TYPE_RESERVED     ((UCHAR)0)
+#define SMBIOS_SYSTEM_WAKE_UP_TYPE_OTHER        ((UCHAR)1)
+#define SMBIOS_SYSTEM_WAKE_UP_UNKNOWN           ((UCHAR)2)
+#define SMBIOS_SYSTEM_WAKE_UP_APM_TIMER         ((UCHAR)3)
+#define SMBIOS_SYSTEM_WAKE_UP_MODEM_RING        ((UCHAR)4)
+#define SMBIOS_SYSTEM_WAKE_UP_LAN_REMOTE        ((UCHAR)5)
+#define SMBIOS_SYSTEM_WAKE_UP_POWER_SWITCH      ((UCHAR)6)
+#define SMBIOS_SYSTEM_WAKE_UP_PCI_PME           ((UCHAR)7)
+#define SMBIOS_SYSTEM_WAKE_UP_AC_POWER_RESTORED ((UCHAR)8)
+
+//
+// Baseboard (or Module) Information (Type 2)
+//
+
+#define SMBIOS_BASEBOARD_INFORMATION_TYPE ((UCHAR)2)
+
+typedef struct _SMBIOS_BASEBOARD_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    UCHAR Manufacturer;            // string
+    UCHAR Product;                 // string
+    UCHAR Version;                 // string
+    UCHAR SerialNumber;            // string
+    UCHAR AssetTag;                // string
+    UCHAR Features;                // SMBIOS_BASEBOARD_FEATURE_*
+    UCHAR Location;                // string
+    USHORT ChassisHandle;
+    UCHAR BoardType;               // SMBIOS_BASEBOARD_TYPE_*
+    UCHAR NumberOfHandles;
+    USHORT Handles[ANYSIZE_ARRAY]; // Contained object handles (processors, ports, memory, etc.)
+} SMBIOS_BASEBOARD_INFORMATION, *PSMBIOS_BASEBOARD_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_BASEBOARD_INFORMATION) == 0x11);
+
+#define SMBIOS_BASEBOARD_FEATURE_HOSTING_BOARD           ((UCHAR)0x01)
+#define SMBIOS_BASEBOARD_FEATURE_REQUIRES_DAUGHTER_BOARD ((UCHAR)0x02)
+#define SMBIOS_BASEBOARD_FEATURE_REMOVABLE_BOARD         ((UCHAR)0x04)
+#define SMBIOS_BASEBOARD_FEATURE_REPLACEABLE_BOARD       ((UCHAR)0x08)
+#define SMBIOS_BASEBOARD_FEATURE_HOT_SWAP_BOARD          ((UCHAR)0x10)
+#define SMBIOS_BASEBOARD_FEATURE_RESERVED                ((UCHAR)0xE0)
+
+#define SMBIOS_BASEBOARD_TYPE_UNKNOWN                    ((UCHAR)1)
+#define SMBIOS_BASEBOARD_TYPE_OTHER                      ((UCHAR)2)
+#define SMBIOS_BASEBOARD_TYPE_SERVER_BLADE               ((UCHAR)3)
+#define SMBIOS_BASEBOARD_TYPE_CONNECTIVITY_SWITCH        ((UCHAR)4)
+#define SMBIOS_BASEBOARD_TYPE_SYSTEM_MANAGEMENT_MODULE   ((UCHAR)5)
+#define SMBIOS_BASEBOARD_TYPE_PROCESSOR_MODULE           ((UCHAR)6)
+#define SMBIOS_BASEBOARD_TYPE_IO_MODULE                  ((UCHAR)7)
+#define SMBIOS_BASEBOARD_TYPE_MEMORY_MODULE              ((UCHAR)8)
+#define SMBIOS_BASEBOARD_TYPE_DAUGHTER_BOARD             ((UCHAR)9)
+#define SMBIOS_BASEBOARD_TYPE_MOTHERBOARD                ((UCHAR)10)
+#define SMBIOS_BASEBOARD_TYPE_PROCESSOR_MEMORY_MODULE    ((UCHAR)11)
+#define SMBIOS_BASEBOARD_TYPE_PROCESSOR_IO_MODULE        ((UCHAR)12)
+#define SMBIOS_BASEBOARD_TYPE_INTERCONNECT               ((UCHAR)13)
+
+//
+// System Enclosure or Chassis (Type 3)
+//
+
+#define SMBIOS_CHASSIS_INFORMATION_TYPE ((UCHAR)3)
+
+typedef struct _SMBIOS_CHASSIS_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR Manufacturer;       // string
+    union
+    {
+        struct
+        {
+            UCHAR Type : 7;   // SMBIOS_CHASSIS_TYPE_*
+            UCHAR Locked : 1;
+        };
+
+        UCHAR Value;
+    } Chassis;
+
+    UCHAR Version;            // string
+    UCHAR SerialNumber;       // string
+    UCHAR AssetTag;           // string
+    // 2.1+
+    UCHAR BootUpState;        // SMBIOS_CHASSIS_STATE_*
+    UCHAR PowerSupplyState;   // SMBIOS_CHASSIS_STATE_*
+    UCHAR ThermalState;       // SMBIOS_CHASSIS_STATE_*
+    UCHAR SecurityState;      // SMBIOS_CHASSIS_SECURITY_STATE_*
+    // 2.3+
+    ULONG OEMDefined;
+    UCHAR Height;
+    UCHAR NumberOfPowerCords;
+    UCHAR ElementCount;
+    UCHAR ElementLength;
+    UCHAR Elements[ANYSIZE_ARRAY]; // ElementCount * ElementLength, SMBIOS_CHASSIS_CONTAINED_ELEMENT
+    // 2.7+
+    // SMBIOS_CHASSIS_INFORMATION_EX
+} SMBIOS_CHASSIS_INFORMATION, *PSMBIOS_CHASSIS_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_CHASSIS_INFORMATION) == 0x16);
+
+typedef struct _SMBIOS_CHASSIS_INFORMATION_EX
+{
+    // 2.7+
+    UCHAR SKUNumber; // string
+} SMBIOS_CHASSIS_INFORMATION_EX, *PSMBIOS_CHASSIS_INFORMATION_EX;
+
+typedef struct _SMBIOS_CHASSIS_CONTAINED_ELEMENT
+{
+    // 2.3+
+    union
+    {
+        struct
+        {
+            UCHAR Type : 7;   // SMBIOS_*_INFORMATION_TYPE or SM_BIOS_BASEBOARD_TYPE_*
+            UCHAR Select : 1; // 1 = SMBIOS_*_INFORMATION_TYPE, 0 = SM_BIOS_BASEBOARD_TYPE_*
+        };
+
+        UCHAR Value;
+    } Type;
+
+    UCHAR ElementMinimum;
+    UCHAR ElementMaximum;
+} SMBIOS_CHASSIS_CONTAINED_ELEMENT, *PSMBIOS_CHASSIS_CONTAINED_ELEMENT;
+
+C_ASSERT(sizeof(SMBIOS_CHASSIS_CONTAINED_ELEMENT) == 0x3);
+
+#define SMBIOS_CHASSIS_TYPE_OTHER               1
+#define SMBIOS_CHASSIS_TYPE_UNKNOWN             2
+#define SMBIOS_CHASSIS_TYPE_DESKTOP             3
+#define SMBIOS_CHASSIS_TYPE_LOW_PROFILE_DESKTOP 4
+#define SMBIOS_CHASSIS_TYPE_PIZZA_BOX           5
+#define SMBIOS_CHASSIS_TYPE_MINI_TOWER          6
+#define SMBIOS_CHASSIS_TYPE_TOWER               7
+#define SMBIOS_CHASSIS_TYPE_PORTABLE            8
+#define SMBIOS_CHASSIS_TYPE_LAPTOP              9
+#define SMBIOS_CHASSIS_TYPE_NOTEBOOK            10
+#define SMBIOS_CHASSIS_TYPE_HAND_HELD           11
+#define SMBIOS_CHASSIS_TYPE_DOCKING_STATION     12
+#define SMBIOS_CHASSIS_TYPE_ALL_IN_ONE          13
+#define SMBIOS_CHASSIS_TYPE_SUB_NOTEBOOK        14
+#define SMBIOS_CHASSIS_TYPE_SPACE_SAVING        15
+#define SMBIOS_CHASSIS_TYPE_LUNCH_BOX           16
+#define SMBIOS_CHASSIS_TYPE_MAIN_SERVER         17
+#define SMBIOS_CHASSIS_TYPE_EXPANSION           18
+#define SMBIOS_CHASSIS_TYPE_SUB                 19
+#define SMBIOS_CHASSIS_TYPE_BUS_EXPANSION       20
+#define SMBIOS_CHASSIS_TYPE_PERIPHERAL          21
+#define SMBIOS_CHASSIS_TYPE_RAID                22
+#define SMBIOS_CHASSIS_TYPE_RACK_MOUNT          23
+#define SMBIOS_CHASSIS_TYPE_SEALED_CASE_PC      24
+#define SMBIOS_CHASSIS_TYPE_MULTI_SYSTEM        25
+#define SMBIOS_CHASSIS_TYPE_COMPACT_PCI         26
+#define SMBIOS_CHASSIS_TYPE_ADVANCED_TCA        27
+#define SMBIOS_CHASSIS_TYPE_BLADE               28
+#define SMBIOS_CHASSIS_TYPE_BLADE_ENCLOSURE     29
+#define SMBIOS_CHASSIS_TYPE_TABLET              30
+#define SMBIOS_CHASSIS_TYPE_CONVERTIBLE         31
+#define SMBIOS_CHASSIS_TYPE_DETACHABLE          32
+#define SMBIOS_CHASSIS_TYPE_IOT_GATEWAY         33
+#define SMBIOS_CHASSIS_TYPE_EMBEDDED_PC         34
+#define SMBIOS_CHASSIS_TYPE_MINI_PC             35
+#define SMBIOS_CHASSIS_TYPE_STICK_PC            36
+
+#define SMBIOS_CHASSIS_STATE_OTHER           ((UCHAR)1)
+#define SMBIOS_CHASSIS_STATE_UNKNOWN         ((UCHAR)2)
+#define SMBIOS_CHASSIS_STATE_SAFE            ((UCHAR)3)
+#define SMBIOS_CHASSIS_STATE_WARNING         ((UCHAR)4)
+#define SMBIOS_CHASSIS_STATE_CRITICAL        ((UCHAR)5)
+#define SMBIOS_CHASSIS_STATE_NON_RECOVERABLE ((UCHAR)6)
+
+#define SMBIOS_CHASSIS_SECURITY_STATE_OTHER      ((UCHAR)1)
+#define SMBIOS_CHASSIS_SECURITY_STATE_UNKNOWN    ((UCHAR)2)
+#define SMBIOS_CHASSIS_SECURITY_STATE_NONE       ((UCHAR)3)
+#define SMBIOS_CHASSIS_SECURITY_STATE_LOCKED_OUT ((UCHAR)4)
+#define SMBIOS_CHASSIS_SECURITY_STATE_ENABLED    ((UCHAR)5)
+
+//
+// Processor Information (Type 4)
+//
+
+#define SMBIOS_PROCESSOR_INFORMATION_TYPE ((UCHAR)4)
+
+typedef struct _SMBIOS_PROCESSOR_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR SocketDesignation; // string
+    UCHAR Type;              // SMBIOS_PROCESSOR_TYPE_*
+    UCHAR Family;            // SMBIOS_PROCESSOR_FAMILY_*
+    UCHAR Manufacturer;      // string
+    ULONGLONG Identifier;
+    UCHAR Version;           // string
+
+    union
+    {
+        struct
+        {
+            UCHAR Capable5000mV : 1; // 5V
+            UCHAR Capable3500mV : 1; // 3.3V
+            UCHAR Capable2900mV : 1; // 2.9V
+            UCHAR Reserved : 4;
+            UCHAR Mode : 1;          // 0 = Legacy Mode
+        };
+
+        UCHAR Value;
+    } Voltage;
+
+    USHORT ExternalClock;
+    USHORT MaxSpeed;
+    USHORT CurrentSpeed;
+
+    union
+    {
+        struct
+        {
+            UCHAR Status : 3;    // SMBIOS_PROCESSOR_STATUS_*
+            UCHAR Reserved : 3;
+            UCHAR Populated : 1;
+            UCHAR Reserved2 : 1;
+        };
+
+        UCHAR Value;
+    } Status;
+
+    UCHAR Upgrade;          // SMBIOS_PROCESSOR_UPGRADE_*
+    // 2.1+
+    USHORT L1CacheHandle;
+    USHORT L2CacheHandle;
+    USHORT L3CacheHandle;
+    // 2.3+
+    UCHAR SerialNumber;     // string
+    UCHAR AssetTag;         // string
+    UCHAR PartNumber;       // string
+    // 2.5+
+    UCHAR CoreCount;
+    UCHAR CoresEnabled;
+    UCHAR ThreadCount;
+    USHORT Characteristics; // SMBIOS_PROCESSOR_FLAG_*
+    // 2.6+
+    USHORT Family2;         // SMBIOS_PROCESSOR_FAMILY_*
+    // 3.0+
+    USHORT CoreCount2;
+    USHORT CoresEnabled2;
+    USHORT ThreadCount2;
+    // 3.6+
+    USHORT ThreadsEnabled;
+    // 3.8+
+    UCHAR SocketType;       // string
+} SMBIOS_PROCESSOR_INFORMATION, *PSMBIOS_PROCESSOR_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_PROCESSOR_INFORMATION) == 0x33);
+
+#define SMBIOS_PROCESSOR_TYPE_OTHER   ((UCHAR)1)
+#define SMBIOS_PROCESSOR_TYPE_UNKNOWN ((UCHAR)2)
+#define SMBIOS_PROCESSOR_TYPE_CENTRAL ((UCHAR)3)
+#define SMBIOS_PROCESSOR_TYPE_MATH    ((UCHAR)4)
+#define SMBIOS_PROCESSOR_TYPE_DSP     ((UCHAR)5)
+#define SMBIOS_PROCESSOR_TYPE_VIDEO   ((UCHAR)6)
+
+#define SMBIOS_PROCESSOR_FAMILY_OTHER 1
+#define SMBIOS_PROCESSOR_FAMILY_UNKNOWN 2
+#define SMBIOS_PROCESSOR_FAMILY_8086 3
+#define SMBIOS_PROCESSOR_FAMILY_80286 4
+#define SMBIOS_PROCESSOR_FAMILY_INTEL386_PROCESSOR 5
+#define SMBIOS_PROCESSOR_FAMILY_INTEL486_PROCESSOR 6
+#define SMBIOS_PROCESSOR_FAMILY_8087 7
+#define SMBIOS_PROCESSOR_FAMILY_80287 8
+#define SMBIOS_PROCESSOR_FAMILY_80387 9
+#define SMBIOS_PROCESSOR_FAMILY_80487 10
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_PENTIUM_PROCESSOR 11
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_PRO_PROCESSOR 12
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_II_PROCESSOR 13
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_PROCESSOR_WITH_MMX_TECHNOLOGY 14
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CELERON_PROCESSOR 15
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_II_XEON_PROCESSOR 16
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_III_PROCESSOR 17
+#define SMBIOS_PROCESSOR_FAMILY_M1_FAMILY 18
+#define SMBIOS_PROCESSOR_FAMILY_M2_FAMILY 19
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CELERON_M_PROCESSOR 20
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_PENTIUM_4_HT_PROCESSOR 21
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_PROCESSOR 22
+// 23 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_AMD_DURON_PROCESSOR_FAMILY 24
+#define SMBIOS_PROCESSOR_FAMILY_K5_FAMILY 25
+#define SMBIOS_PROCESSOR_FAMILY_K6_FAMILY 26
+#define SMBIOS_PROCESSOR_FAMILY_K6_2 27
+#define SMBIOS_PROCESSOR_FAMILY_K6_3 28
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_PROCESSOR_FAMILY 29
+#define SMBIOS_PROCESSOR_FAMILY_AMD29000_FAMILY 30
+#define SMBIOS_PROCESSOR_FAMILY_K6_2_PLUS 31
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_FAMILY 32
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_601 33
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_603 34
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_603_PLUS 35
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_604 36
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_620 37
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_X704 38
+#define SMBIOS_PROCESSOR_FAMILY_POWER_PC_750 39
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_DUO_PROCESSOR 40
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_DUO_MOBILE_PROCESSOR 41
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_SOLO_MOBILE_PROCESSOR 42
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_ATOM_PROCESSOR 43
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_M_PROCESSOR 44
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_M3_PROCESSOR 45
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_M5_PROCESSOR 46
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_M7_PROCESSOR 47
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_FAMILY 48
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_21064 49
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_21066 50
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_21164 51
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_21164PC 52
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_21164A 53
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_21264 54
+#define SMBIOS_PROCESSOR_FAMILY_ALPHA_21364 55
+#define SMBIOS_PROCESSOR_FAMILY_AMD_TURION_II_ULTRA_DUAL_CORE_MOBILE_M_PROCESSOR_FAMILY 56
+#define SMBIOS_PROCESSOR_FAMILY_AMD_TURION_II_DUAL_CORE_MOBILE_M_PROCESSOR_FAMILY 57
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_II_DUAL_CORE_M_PROCESSOR_FAMILY 58
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_6100_SERIES_PROCESSOR 59
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_4100_SERIES_PROCESSOR 60
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_6200_SERIES_PROCESSOR 61
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_4200_SERIES_PROCESSOR 62
+#define SMBIOS_PROCESSOR_FAMILY_AMD_FX_SERIES_PROCESSOR 63
+#define SMBIOS_PROCESSOR_FAMILY_MIPS_FAMILY 64
+#define SMBIOS_PROCESSOR_FAMILY_MIPS_R4000 65
+#define SMBIOS_PROCESSOR_FAMILY_MIPS_R4200 66
+#define SMBIOS_PROCESSOR_FAMILY_MIPS_R4400 67
+#define SMBIOS_PROCESSOR_FAMILY_MIPS_R4600 68
+#define SMBIOS_PROCESSOR_FAMILY_MIPS_R10000 69
+#define SMBIOS_PROCESSOR_FAMILY_AMD_C_SERIES_PROCESSOR 70
+#define SMBIOS_PROCESSOR_FAMILY_AMD_E_SERIES_PROCESSOR 71
+#define SMBIOS_PROCESSOR_FAMILY_AMD_A_SERIES_PROCESSOR 72
+#define SMBIOS_PROCESSOR_FAMILY_AMD_G_SERIES_PROCESSOR 73
+#define SMBIOS_PROCESSOR_FAMILY_AMD_Z_SERIES_PROCESSOR 74
+#define SMBIOS_PROCESSOR_FAMILY_AMD_R_SERIES_PROCESSOR 75
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_4300_SERIES_PROCESSOR 76
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_6300_SERIES_PROCESSOR 77
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_3300_SERIES_PROCESSOR 78
+#define SMBIOS_PROCESSOR_FAMILY_AMD_FIREPRO_SERIES_PROCESSOR 79
+#define SMBIOS_PROCESSOR_FAMILY_SPARC_FAMILY 80
+#define SMBIOS_PROCESSOR_FAMILY_SUPERSPARC 81
+#define SMBIOS_PROCESSOR_FAMILY_MICROSPARC_II 82
+#define SMBIOS_PROCESSOR_FAMILY_MICROSPARC_IIep 83
+#define SMBIOS_PROCESSOR_FAMILY_ULTRASPARC 84
+#define SMBIOS_PROCESSOR_FAMILY_ULTRASPARC_II 85
+#define SMBIOS_PROCESSOR_FAMILY_ULTRASPARC_Iii 86
+#define SMBIOS_PROCESSOR_FAMILY_ULTRASPARC_III 87
+#define SMBIOS_PROCESSOR_FAMILY_ULTRASPARC_IIIi 88
+// 89-95 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_68040_FAMILY 96
+#define SMBIOS_PROCESSOR_FAMILY_68XXX 97
+#define SMBIOS_PROCESSOR_FAMILY_68000 98
+#define SMBIOS_PROCESSOR_FAMILY_68010 99
+#define SMBIOS_PROCESSOR_FAMILY_68020 100
+#define SMBIOS_PROCESSOR_FAMILY_68030 101
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_X4_QUAD_CORE_PROCESSOR_FAMILY 102
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_X1000_SERIES_PROCESSOR 103
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_X2000_SERIES_APU 104
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_A_SERIES_PROCESSOR 105
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_X3000_SERIES_APU 106
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ZEN_PROCESSOR_FAMILY 107
+// 108-111 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_HOBBIT_FAMILY 112
+// 113-119 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_CRUSOE_TM5000_FAMILY 120
+#define SMBIOS_PROCESSOR_FAMILY_CRUSOE_TM3000_FAMILY 121
+#define SMBIOS_PROCESSOR_FAMILY_EFFICEON_TM8000_FAMILY 122
+// 123-127 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_WEITEK 128
+// 129 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_ITANIUM_PROCESSOR 130
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_64_PROCESSOR_FAMILY 131
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_PROCESSOR_FAMILY 132
+#define SMBIOS_PROCESSOR_FAMILY_AMD_SEMPRON_PROCESSOR_FAMILY 133
+#define SMBIOS_PROCESSOR_FAMILY_AMD_TURION_64_MOBILE_TECHNOLOGY 134
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_AMD_OPTERON_PROCESSOR_FAMILY 135
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_64_X2_DUAL_CORE_PROCESSOR_FAMILY 136
+#define SMBIOS_PROCESSOR_FAMILY_AMD_TURION_64_X2_MOBILE_TECHNOLOGY 137
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_AMD_OPTERON_PROCESSOR_FAMILY 138
+#define SMBIOS_PROCESSOR_FAMILY_THIRD_GENERATION_AMD_OPTERON_PROCESSOR_FAMILY 139
+#define SMBIOS_PROCESSOR_FAMILY_AMD_PHENOM_FX_QUAD_CORE_PROCESSOR_FAMILY 140
+#define SMBIOS_PROCESSOR_FAMILY_AMD_PHENOM_X4_QUAD_CORE_PROCESSOR_FAMILY 141
+#define SMBIOS_PROCESSOR_FAMILY_AMD_PHENOM_X2_DUAL_CORE_PROCESSOR_FAMILY 142
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_X2_DUAL_CORE_PROCESSOR_FAMILY 143
+#define SMBIOS_PROCESSOR_FAMILY_PA_RISC_FAMILY 144
+#define SMBIOS_PROCESSOR_FAMILY_PA_RISC_8500 145
+#define SMBIOS_PROCESSOR_FAMILY_PA_RISC_8000 146
+#define SMBIOS_PROCESSOR_FAMILY_PA_RISC_7300LC 147
+#define SMBIOS_PROCESSOR_FAMILY_PA_RISC_7200 148
+#define SMBIOS_PROCESSOR_FAMILY_PA_RISC_7100LC 149
+#define SMBIOS_PROCESSOR_FAMILY_PA_RISC_7100 150
+// 151-159 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_V30_FAMILY 160
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_3200_SERIES 161
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_3000_SERIES 162
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_5300_SERIES 163
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_5100_SERIES 164
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_5000_SERIES 165
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_LV 166
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_ULV 167
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_7100_SERIES 168
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_5400_SERIES 169
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR 170
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_5200_SERIES 171
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_7200_SERIES 172
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_7300_SERIES 173
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_7400_SERIES 174
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_INTEL_XEON_PROCESSOR_7400_SERIES 175
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_III_XEON_PROCESSOR 176
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_III_PROCESSOR_WITH_INTEL_SPEEDSTEP_TECHNOLOGY 177
+#define SMBIOS_PROCESSOR_FAMILY_PENTIUM_4_PROCESSOR 178
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_XEON_PROCESSOR 179
+#define SMBIOS_PROCESSOR_FAMILY_AS400_FAMILY 180
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_XEON_PROCESSOR_MP 181
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_XP_PROCESSOR_FAMILY 182
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_MP_PROCESSOR_FAMILY 183
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_ITANIUM_2_PROCESSOR 184
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_PENTIUM_M_PROCESSOR 185
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CELERON_D_PROCESSOR 186
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_PENTIUM_D_PROCESSOR 187
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_PENTIUM_PROCESSOR_EXTREME_EDITION 188
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_SOLO_PROCESSOR 189
+#define SMBIOS_PROCESSOR_FAMILY_RESERVED 190
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_2_DUO_PROCESSOR 191
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_2_SOLO_PROCESSOR 192
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_2_EXTREME_PROCESSOR 193
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_2_QUAD_PROCESSOR 194
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_2_EXTREME_MOBILE_PROCESSOR 195
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_2_DUO_MOBILE_PROCESSOR 196
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_2_SOLO_MOBILE_PROCESSOR 197
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_I7_PROCESSOR 198
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_CELERO_PROCESSOR 199
+#define SMBIOS_PROCESSOR_FAMILY_IBM390_FAMILY 200
+#define SMBIOS_PROCESSOR_FAMILY_G4 201
+#define SMBIOS_PROCESSOR_FAMILY_G5 202
+#define SMBIOS_PROCESSOR_FAMILY_ESA_390_G6 203
+#define SMBIOS_PROCESSOR_FAMILY_Z_ARCHITECTURE_BASE 204
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_I5_PROCESSOR 205
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_I3_PROCESSOR 206
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_I9_PROCESSOR 207
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_XEON_D_PROCESSOR_FAMILY 208
+// 209 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_VIA_C7_M_PROCESSOR_FAMILY 210
+#define SMBIOS_PROCESSOR_FAMILY_VIA_C7_D_PROCESSOR_FAMILY 211
+#define SMBIOS_PROCESSOR_FAMILY_VIA_C7_PROCESSOR_FAMILY 212
+#define SMBIOS_PROCESSOR_FAMILY_VIA_EDEN_PROCESSOR_FAMILY 213
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_INTEL_XEON_PROCESSOR 214
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_3XXX_SERIES 215
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_3XXX_SERIES 216
+#define SMBIOS_PROCESSOR_FAMILY_VIA_NANO_PROCESSOR_FAMILY 217
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_5XXX_SERIES 218
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_5XXX_SERIES 219
+// 220 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_INTEL_XEON_PROCESSOR_7XXX_SERIES 221
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_INTEL_XEON_PROCESSOR_7XXX_SERIES 222
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_INTEL_XEON_PROCESSOR_7XXX_SERIES 223
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_INTEL_XEON_PROCESSOR_3400_SERIES 224
+// 225-227 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_AMD_OPTERON_3000_SERIES_PROCESSOR 228
+#define SMBIOS_PROCESSOR_FAMILY_AMD_SEMPRON_II_PROCESSOR 229
+#define SMBIOS_PROCESSOR_FAMILY_EMBEDDED_AMD_OPTERON_QUAD_CORE_PROCESSOR_FAMILY 230
+#define SMBIOS_PROCESSOR_FAMILY_AMD_PHENOM_TRIPLE_CORE_PROCESSOR_FAMILY 231
+#define SMBIOS_PROCESSOR_FAMILY_AMD_TURION_ULTRA_DUAL_CORE_MOBILE_PROCESSOR_FAMILY 232
+#define SMBIOS_PROCESSOR_FAMILY_AMD_TURION_DUAL_CORE_MOBILE_PROCESSOR_FAMILY 233
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_DUAL_CORE_PROCESSOR_FAMILY 234
+#define SMBIOS_PROCESSOR_FAMILY_AMD_SEMPRON_SI_PROCESSOR_FAMILY 235
+#define SMBIOS_PROCESSOR_FAMILY_AMD_PHENOM_II_PROCESSOR_FAMILY 236
+#define SMBIOS_PROCESSOR_FAMILY_AMD_ATHLON_II_PROCESSOR_FAMILY 237
+#define SMBIOS_PROCESSOR_FAMILY_SIX_CORE_AMD_OPTERON_PROCESSOR_FAMILY 238
+#define SMBIOS_PROCESSOR_FAMILY_AMD_SEMPRON_M_PROCESSOR_FAMILY 239
+// 240-249 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_I860 250
+#define SMBIOS_PROCESSOR_FAMILY_I960 251
+// 252-253 - Available for assignment
+#define SMBIOS_PROCESSOR_FAMILY_USE_2ND_FIELD 254
+// 255 RESERVED
+// 256-511 - Available for assignment, except for:
+#define SMBIOS_PROCESSOR_FAMILY_ARMV7 256
+#define SMBIOS_PROCESSOR_FAMILY_ARMV8 257
+#define SMBIOS_PROCESSOR_FAMILY_ARMV9 258
+// 259 - Reserved for future use by ARM
+#define SMBIOS_PROCESSOR_FAMILY_SH_3 260
+#define SMBIOS_PROCESSOR_FAMILY_SH_4 261
+#define SMBIOS_PROCESSOR_FAMILY_ARM 280
+#define SMBIOS_PROCESSOR_FAMILY_STRONGARM 281
+#define SMBIOS_PROCESSOR_FAMILY_6X86 300
+#define SMBIOS_PROCESSOR_FAMILY_MEDIAGX 301
+#define SMBIOS_PROCESSOR_FAMILY_MII 302
+#define SMBIOS_PROCESSOR_FAMILY_WINCHIP 320
+#define SMBIOS_PROCESSOR_FAMILY_DSP 350
+#define SMBIOS_PROCESSOR_FAMILY_VIDEO_PROCESSOR 500
+// 512-767 - Available for assignment, except for:
+#define SMBIOS_PROCESSOR_FAMILY_RISC_V_RV32 512
+#define SMBIOS_PROCESSOR_FAMILY_RISC_V_RV64 513
+#define SMBIOS_PROCESSOR_FAMILY_RISC_V_RV128 514
+#define SMBIOS_PROCESSOR_FAMILY_LOONGARCH 600
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_1_PROCESSOR_FAMILY 601
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_2_PROCESSOR_FAMILY 602
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_3_PROCESSOR_FAMILY 603
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_2K_PROCESSOR_FAMILY 604
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_3A_PROCESSOR_FAMILY 605
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_3B_PROCESSOR_FAMILY 606
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_3C_PROCESSOR_FAMILY 607
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_3D_PROCESSOR_FAMILY 608
+#define SMBIOS_PROCESSOR_FAMILY_LOONGSON_3E_PROCESSOR_FAMILY 609
+#define SMBIOS_PROCESSOR_FAMILY_DUAL_CORE_LOONGSON_2K_PROCESSOR_2XXX_SERIES 610
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_LOONGSON_3A_PROCESSOR_5XXX_SERIES 620
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_LOONGSON_3A_PROCESSOR_5XXX_SERIES 621
+#define SMBIOS_PROCESSOR_FAMILY_QUAD_CORE_LOONGSON_3B_PROCESSOR_5XXX_SERIES 622
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_LOONGSON_3B_PROCESSOR_5XXX_SERIES 623
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_LOONGSON_3C_PROCESSOR_5XXX_SERIES 624
+#define SMBIOS_PROCESSOR_FAMILY_MULTI_CORE_LOONGSON_3D_PROCESSOR_5XXX_SERIES 625
+// 768-1023 - Available for assignment, except for:
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_3 768
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_5 769
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_7 770
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_9 771
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_ULTRA_3 772
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_ULTRA_5 773
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_ULTRA_7 774
+#define SMBIOS_PROCESSOR_FAMILY_INTEL_CORE_ULTRA_9 775
+// 1024-65533 - Available for assignment
+// 65534–65535 - RESERVED
+
+#define SMBIOS_PROCESSOR_STATUS_UNKNOWN              0
+#define SMBIOS_PROCESSOR_STATUS_ENABLED              1
+#define SMBIOS_PROCESSOR_STATUS_DISABLED_BY_USER     2
+#define SMBIOS_PROCESSOR_STATUS_DISABLED_BY_FIRMWARE 3
+#define SMBIOS_PROCESSOR_STATUS_IDLE                 4
+#define SMBIOS_PROCESSOR_STATUS_RESERVED_5           5
+#define SMBIOS_PROCESSOR_STATUS_RESERVED_6           6
+#define SMBIOS_PROCESSOR_STATUS_OTHER                7
+
+#define SMBIOS_PROCESSOR_UPGRADE_OTHER 1
+#define SMBIOS_PROCESSOR_UPGRADE_UNKNOWN 2
+#define SMBIOS_PROCESSOR_UPGRADE_DAUGHTER_BOARD 3
+#define SMBIOS_PROCESSOR_UPGRADE_ZIF_SOCKET 4
+#define SMBIOS_PROCESSOR_UPGRADE_REPLACEABLE_PIGGY_BACK 5
+#define SMBIOS_PROCESSOR_UPGRADE_NONE 6
+#define SMBIOS_PROCESSOR_UPGRADE_LIF_SOCKET 7
+#define SMBIOS_PROCESSOR_UPGRADE_SLOT_1 8
+#define SMBIOS_PROCESSOR_UPGRADE_SLOT_2 9
+#define SMBIOS_PROCESSOR_UPGRADE_370_PIN_SOCKET 10
+#define SMBIOS_PROCESSOR_UPGRADE_SLOT_A 11
+#define SMBIOS_PROCESSOR_UPGRADE_SLOT_M 12
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_423 13
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_A 14 // (Socket 462)
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_478 15
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_754 16
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_940 17
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_939 18
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_MPGA604 19
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA771 20
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA775 21
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_S1 22
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_AM2 23
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_F 24 // (1207)
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1366 25
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_G34 26
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_AM3 27
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_C32 28
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1156 29
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1567 30
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_PGA988A 31
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1288 32
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_RPGA988B 33
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1023 34
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1224 35
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1155 36
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1356 37
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA2011 38
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_FS1 39
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_FS2 40
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_FM1 41
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_FM2 42
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA2011_3 43
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1356_3 44
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1150 45
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1168 46
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1234 47
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1364 48
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_AM4 49
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1151 50
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1356 51
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1440 52
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1515 53
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA3647_1 54
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_SP3 55
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_SP3R2 56
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA2066 57
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1392 58
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1510 59
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1528 60
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA4189 61
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1200 62
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA4677 63
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1700 64
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1744 65
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1781 66
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1211 67
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA2422 68
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1211 69
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA2422 70
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA5773 71
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA5773 72
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_AM5 73
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_SP5 74
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_SP6 75
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA883 76
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1190 77
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA4129 78
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA4710 79
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA7529 80
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1964 81
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA1792 82
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA2049 83
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA2551 84
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_LGA1851 85
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA2114 86
+#define SMBIOS_PROCESSOR_UPGRADE_SOCKET_BGA2833 87
+#define SMBIOS_PROCESSOR_UPGRADE_INVALID 255
+
+#define SMBIOS_PROCESSOR_FLAG_RESERVED                  ((USHORT)0x0001)
+#define SMBIOS_PROCESSOR_FLAG_UNKNOWN                   ((USHORT)0x0002)
+#define SMBIOS_PROCESSOR_FLAG_64_BIT_CAPABLE            ((USHORT)0x0004)
+#define SMBIOS_PROCESSOR_FLAG_MILT_CORE                 ((USHORT)0x0008)
+#define SMBIOS_PROCESSOR_FLAG_HARDWARE_THREADED         ((USHORT)0x0010)
+#define SMBIOS_PROCESSOR_FLAG_EXECUTE_PROTECTION        ((USHORT)0x0020)
+#define SMBIOS_PROCESSOR_FLAG_ENHANCED_VIRTUALIZATION   ((USHORT)0x0040)
+#define SMBIOS_PROCESSOR_FLAG_POWER_PERFORMANCE_CONTROL ((USHORT)0x0080)
+#define SMBIOS_PROCESSOR_FLAG_128_BIT_CAPABLE           ((USHORT)0x0100)
+#define SMBIOS_PROCESSOR_FLAG_ARM64_SOC                 ((USHORT)0x0200)
+#define SMBIOS_PROCESSOR_FLAG_RESERVED_2                ((USHORT)0xFC00)
+
+//
+// Memory Controller Information (Type 5, Obsolete)
+//
+
+#define SMBIOS_MEMORY_CONTROLLER_INFORMATION_TYPE ((UCHAR)5)
+
+typedef struct _SMBIOS_MEMORY_CONTROLLER_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR ErrorDetectionMethod;        // SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_*
+    UCHAR ErrorCorrectionCapabilities; // SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_*
+    UCHAR SupportedInterleave;         // SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_*
+    UCHAR CurrentInterleave;           // SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_*
+    UCHAR MaximumModuleSize;           // 2^n
+    USHORT SupportedSpeeds;            // SMBIOS_MEMORY_CONTROLLER_SPEEDS_*
+    USHORT SupportedTypes;             // SMBIOS_MEMORY_MODULE_TYPE_*
+
+    union
+    {
+        struct
+        {
+            UCHAR Requires5000mV : 1; // 5V
+            UCHAR Requires3500mV : 1; // 3.3V
+            UCHAR Requires2900mV : 1; // 2.9V
+            UCHAR Reserved : 5;
+        };
+
+        UCHAR Value;
+    } ModuleVoltage;
+
+    UCHAR NumberOfSlots;
+    USHORT SlotHandles[ANYSIZE_ARRAY];
+    // 2.1+
+    // SMBIOS_MEMORY_CONTROLLER_INFORMATION_EX
+} SMBIOS_MEMORY_CONTROLLER_INFORMATION, *PSMBIOS_MEMORY_CONTROLLER_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MEMORY_CONTROLLER_INFORMATION) == 0x11);
+
+typedef struct _SMBIOS_MEMORY_CONTROLLER_INFORMATION_EX
+{
+    UCHAR EnabledErrorCorrectionCapabilities; // SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_*
+} SMBIOS_MEMORY_CONTROLLER_INFORMATION_EX, *PSMBIOS_MEMORY_CONTROLLER_INFORMATION_EX;
+
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_OTHER        ((UCHAR)1)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_UNKNOWN      ((UCHAR)2)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_NONE         ((UCHAR)3)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_8_BIT_PARITY ((UCHAR)4)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_32_BIT_ECC   ((UCHAR)5)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_64_BIT_ECC   ((UCHAR)6)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_128_BIT_ECC  ((UCHAR)7)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_DETECTION_CRC          ((UCHAR)8)
+
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_OTHER       ((UCHAR)0x01)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_UNKNOWN     ((UCHAR)0x02)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_SINGLE_BIT  ((UCHAR)0x04)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_DOUBLE_BIT  ((UCHAR)0x10)
+#define SMBIOS_MEMORY_CONTROLLER_ERROR_CORRECTION_SCRUBBING   ((UCHAR)0x20)
+
+#define SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_OTHER             ((UCHAR)1)
+#define SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_UNKNOWN           ((UCHAR)2)
+#define SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_ONE_WAY           ((UCHAR)3)
+#define SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_TWO_WAY           ((UCHAR)4)
+#define SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_FOUR_WAY          ((UCHAR)5)
+#define SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_EIGHT_WAY         ((UCHAR)6)
+#define SMBIOS_MEMORY_CONTROLLER_INTERLEAVE_SIXTEEN_WAY       ((UCHAR)7)
+
+#define SMBIOS_MEMORY_CONTROLLER_SPEEDS_OTHER                 ((USHORT)0x0001)
+#define SMBIOS_MEMORY_CONTROLLER_SPEEDS_UNKNOWN               ((USHORT)0x0002)
+#define SMBIOS_MEMORY_CONTROLLER_SPEEDS_70NS                  ((USHORT)0x0004)
+#define SMBIOS_MEMORY_CONTROLLER_SPEEDS_60NS                  ((USHORT)0x0008)
+#define SMBIOS_MEMORY_CONTROLLER_SPEEDS_50NS                  ((USHORT)0x0010)
+#define SMBIOS_MEMORY_CONTROLLER_SPEEDS_RESERVED              ((USHORT)0xFFE0)
+
+//
+// Memory Module Information (Type 6, Obsolete)
+//
+
+#define SMBIOS_MEMORY_MODULE_INFORMATION_TYPE ((UCHAR)6)
+
+typedef union _SMBIOS_MEMORY_MDOULE_SIZE
+{
+    struct
+    {
+        UCHAR Size : 7;
+        UCHAR DoubleBank : 1;
+    };
+
+    UCHAR Value; // SMBIOS_MEMORY_MDOULE_SIZE_VALUE_*
+} SMBIOS_MEMORY_MDOULE_SIZE, *PSMBIOS_MEMORY_MDOULE_SIZE;
+
+#define SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_DETERMINABLE ((UCHAR)0x7D)
+#define SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_ENABLED      ((UCHAR)0x7E)
+#define SMBIOS_MEMORY_MDOULE_SIZE_VALUE_NOT_INSTALLED    ((UCHAR)0x7F)
+
+typedef struct _SMBIOS_MEMORY_MODULE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    UCHAR SocketDesignation; // string
+    UCHAR BankConnections;
+    UCHAR CurrentSpeed;
+    USHORT MemoryType;       // SMBIOS_MEMORY_MODULE_TYPE_*
+    SMBIOS_MEMORY_MDOULE_SIZE InstalledSize;
+    SMBIOS_MEMORY_MDOULE_SIZE EnabledSize;
+
+    union
+    {
+        struct
+        {
+            UCHAR UncorrectableErrors : 1;
+            UCHAR CorrectableErrors : 1;
+            UCHAR SeeEventLog : 1;
+            UCHAR Reserved : 5;
+        };
+
+        UCHAR Value;
+    } ErrorStatus;
+} SMBIOS_MEMORY_MODULE_INFORMATION, *PSMBIOS_MEMORY_MODULE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MEMORY_MODULE_INFORMATION) == 0xC);
+
+#define SMBIOS_MEMORY_MODULE_TYPE_OTHER          ((USHORT)0x0001)
+#define SMBIOS_MEMORY_MODULE_TYPE_UNKNOWN        ((USHORT)0x0002)
+#define SMBIOS_MEMORY_MODULE_TYPE_STANDARD       ((USHORT)0x0004)
+#define SMBIOS_MEMORY_MODULE_TYPE_FAST_PAGE_MODE ((USHORT)0x0008)
+#define SMBIOS_MEMORY_MODULE_TYPE_EDO            ((USHORT)0x0010)
+#define SMBIOS_MEMORY_MODULE_TYPE_PARITY         ((USHORT)0x0020)
+#define SMBIOS_MEMORY_MODULE_TYPE_ECC            ((USHORT)0x0040)
+#define SMBIOS_MEMORY_MODULE_TYPE_SIMM           ((USHORT)0x0080)
+#define SMBIOS_MEMORY_MODULE_TYPE_DIMM           ((USHORT)0x0100)
+#define SMBIOS_MEMORY_MODULE_TYPE_BURST_EDO      ((USHORT)0x0200)
+#define SMBIOS_MEMORY_MODULE_TYPE_SDRAM          ((USHORT)0x0400)
+#define SMBIOS_MEMORY_MODULE_TYPE_RESERVED       ((USHORT)0xF800)
+
+//
+// Cache Information (Type 7)
+//
+
+#define SMBIOS_CACHE_INFORMATION_TYPE ((UCHAR)7)
+
+typedef union _SMBIOS_CACHE_USHORT
+{
+    struct
+    {
+        USHORT Size : 15;
+        USHORT Granularity : 1; // 0 = 1K, 1 = 64K
+    };
+
+    USHORT Value;
+} SMBIOS_CACHE_USHORT;
+
+typedef union _SMBIOS_CACHE_ULONG
+{
+    struct
+    {
+        ULONG Size : 31;
+        ULONG Granularity : 1; // 0 = 1K, 1 = 64K
+    };
+
+    ULONG Value;
+} SMBIOS_CACHE_ULONG;
+
+typedef struct _SMBIOS_CACHE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR SocketDesignation;      // string
+
+    union
+    {
+        struct
+        {
+            USHORT Level : 3;     // L1 through L8
+            USHORT Socketed : 1;
+            USHORT Reserved : 1;
+            USHORT Location : 2;  // SMBIO_CACHE_LOCATION_*
+            USHORT Enabled : 1;
+            USHORT Mode : 2;      // SMBIOS_CACHE_MODE_*
+            USHORT Reserved2 : 6;
+        };
+
+        USHORT Value;
+    } Configuration;
+
+    SMBIOS_CACHE_USHORT MaximumSize;
+    SMBIOS_CACHE_USHORT InstalledSize;
+    USHORT SupportedSRAM;         // SMBIOS_CACHE_SUPPORTED_SRAM_*
+    USHORT CurrentSRAM;           // SMBIOS_CACHE_SUPPORTED_SRAM_*
+    // 2.1+
+    UCHAR Speed;
+    UCHAR ErrorCorrectionType;    // SMBIOS_CACHE_ERROR_CORRECTION_*
+    UCHAR SystemCacheType;        // SMBIOS_CACHE_SYSTEM_CACHE_*
+    UCHAR Associativity;          // SMBIOS_CACHE_ASSOCIATIVITY_*
+    // 3.1+
+    SMBIOS_CACHE_ULONG MaximumSize2;
+    SMBIOS_CACHE_ULONG InstalledSize2;
+} SMBIOS_CACHE_INFORMATION, *PSMBIOS_CACHE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_CACHE_INFORMATION) == 0x1B);
+
+#define SMBIOS_CACHE_LOCATION_INTERNAL               ((USHORT)0)
+#define SMBIOS_CACHE_LOCATION_EXTERNAL               ((USHORT)1)
+#define SMBIOS_CACHE_LOCATION_RESERVED               ((USHORT)2)
+#define SMBIOS_CACHE_LOCATION_UNKNOWN                ((USHORT)3)
+
+#define SMBIOS_CACHE_MODE_WRITE_THROUGH              ((USHORT)0)
+#define SMBIOS_CACHE_MODE_WRITE_BACK                 ((USHORT)1)
+#define SMBIOS_CACHE_MODE_VARIES_WITH_MEMORY_ADDRESS ((USHORT)2)
+#define SMBIOS_CACHE_MODE_UNKNOWN                    ((USHORT)3)
+
+#define SMBIOS_CACHE_SUPPORTED_SRAM_OTHER            ((USHORT)0x0001)
+#define SMBIOS_CACHE_SUPPORTED_SRAM_UNKNOWN          ((USHORT)0x0002)
+#define SMBIOS_CACHE_SUPPORTED_SRAM_NON_BURST        ((USHORT)0x0004)
+#define SMBIOS_CACHE_SUPPORTED_SRAM_BURST            ((USHORT)0x0008)
+#define SMBIOS_CACHE_SUPPORTED_SRAM_PIPELINE_BURST   ((USHORT)0x0010)
+#define SMBIOS_CACHE_SUPPORTED_SRAM_SYNCHRONOUS      ((USHORT)0x0020)
+#define SMBIOS_CACHE_SUPPORTED_SRAM_ASYNCHRONOUS     ((USHORT)0x0040)
+#define SMBIOS_CACHE_SUPPORTED_SRAM_RESERVED         ((USHORT)0xFF80)
+
+#define SMBIOS_CACHE_ERROR_CORRECTION_OTHER          ((UCHAR)1)
+#define SMBIOS_CACHE_ERROR_CORRECTION_UNKNOWN        ((UCHAR)2)
+#define SMBIOS_CACHE_ERROR_CORRECTION_NONE           ((UCHAR)3)
+#define SMBIOS_CACHE_ERROR_CORRECTION_PARITY         ((UCHAR)4)
+#define SMBIOS_CACHE_ERROR_CORRECTION_SINGLE_BIT_ECC ((UCHAR)5)
+#define SMBIOS_CACHE_ERROR_CORRECTION_MULTI_BIT_ECC  ((UCHAR)6)
+
+#define SMBIOS_CACHE_SYSTEM_CACHE_OTHER              ((UCHAR)1)
+#define SMBIOS_CACHE_SYSTEM_CACHE_UNKNOWN            ((UCHAR)2)
+#define SMBIOS_CACHE_SYSTEM_CACHE_INSTRUCTION        ((UCHAR)3)
+#define SMBIOS_CACHE_SYSTEM_CACHE_DATA               ((UCHAR)4)
+#define SMBIOS_CACHE_SYSTEM_CACHE_UNIFIED            ((UCHAR)5)
+
+#define SMBIOS_CACHE_ASSOCIATIVITY_OTHER             ((UCHAR)1)
+#define SMBIOS_CACHE_ASSOCIATIVITY_UNKNOWN           ((UCHAR)2)
+#define SMBIOS_CACHE_ASSOCIATIVITY_DIRECT_MAPPED     ((UCHAR)3)
+#define SMBIOS_CACHE_ASSOCIATIVITY_2_WAY             ((UCHAR)4)
+#define SMBIOS_CACHE_ASSOCIATIVITY_4_WAY             ((UCHAR)5)
+#define SMBIOS_CACHE_ASSOCIATIVITY_FULL              ((UCHAR)6)
+#define SMBIOS_CACHE_ASSOCIATIVITY_8_WAY             ((UCHAR)7)
+#define SMBIOS_CACHE_ASSOCIATIVITY_16_WAY            ((UCHAR)8)
+#define SMBIOS_CACHE_ASSOCIATIVITY_12_WAY            ((UCHAR)9)
+#define SMBIOS_CACHE_ASSOCIATIVITY_24_WAY            ((UCHAR)10)
+#define SMBIOS_CACHE_ASSOCIATIVITY_32_WAY            ((UCHAR)11)
+#define SMBIOS_CACHE_ASSOCIATIVITY_48_WAY            ((UCHAR)12)
+#define SMBIOS_CACHE_ASSOCIATIVITY_64_WAY            ((UCHAR)13)
+#define SMBIOS_CACHE_ASSOCIATIVITY_20_WAY            ((UCHAR)14)
+
+//
+// Port Connector Information (Type 8)
+//
+
+#define SMBIOS_PORT_CONNECTOR_INFORMATION_TYPE ((UCHAR)8)
+
+typedef struct _SMBIOS_PORT_CONNECTOR_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    UCHAR InternalReferenceDesignator; // string
+    UCHAR InternalConnectorType;       // SMBIOS_PORT_CONNECTOR_TYPE_*
+    UCHAR ExternalReferenceDesignator; // string
+    UCHAR ExternalConnectorType;       // SMBIOS_PORT_CONNECTOR_TYPE_*
+    UCHAR PortType;                    // SMBIOS_PORT_CONNECTOR_PORT_TYPE_*
+} SMBIOS_PORT_CONNECTOR_INFORMATION, *PSMBIOS_PORT_CONNECTOR_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_PORT_CONNECTOR_INFORMATION) == 0x9);
+
+#define SMBIOS_PORT_CONNECTOR_TYPE_NONE                    ((UCHAR)0)
+#define SMBIOS_PORT_CONNECTOR_TYPE_CENTRONICS              ((UCHAR)1)
+#define SMBIOS_PORT_CONNECTOR_TYPE_MINI_CENTRONICS         ((UCHAR)2)
+#define SMBIOS_PORT_CONNECTOR_TYPE_PROPRIETARY             ((UCHAR)3)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_25_PIN_MALE          ((UCHAR)4)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_25_PIN_FEMALE        ((UCHAR)5)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_15_PIN_MALE          ((UCHAR)6)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_15_PIN_FEMALE        ((UCHAR)7)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_9_PIN_MALE           ((UCHAR)8)
+#define SMBIOS_PORT_CONNECTOR_TYPE_DB_9_PIN_FEMALE         ((UCHAR)9)
+#define SMBIOS_PORT_CONNECTOR_TYPE_RJ_11                   ((UCHAR)10)
+#define SMBIOS_PORT_CONNECTOR_TYPE_RJ_54                   ((UCHAR)11)
+#define SMBIOS_PORT_CONNECTOR_TYPE_50_PIN_MINI_SCSI        ((UCHAR)12)
+#define SMBIOS_PORT_CONNECTOR_TYPE_MINI_DIN                ((UCHAR)13)
+#define SMBIOS_PORT_CONNECTOR_TYPE_MICRO_DIN               ((UCHAR)14)
+#define SMBIOS_PORT_CONNECTOR_TYPE_PS2                     ((UCHAR)15)
+#define SMBIOS_PORT_CONNECTOR_TYPE_INFRARED                ((UCHAR)16)
+#define SMBIOS_PORT_CONNECTOR_TYPE_HP_HIL                  ((UCHAR)17)
+#define SMBIOS_PORT_CONNECTOR_TYPE_USB                     ((UCHAR)18)
+#define SMBIOS_PORT_CONNECTOR_TYPE_SSA_SCSI                ((UCHAR)19)
+#define SMBIOS_PORT_CONNECTOR_TYPE_CIRCULAR_DIN_8_MALE     ((UCHAR)20)
+#define SMBIOS_PORT_CONNECTOR_TYPE_CIRCULAR_DIN_8_FEMALE   ((UCHAR)21)
+#define SMBIOS_PORT_CONNECTOR_TYPE_ON_BOARD_IDE            ((UCHAR)22)
+#define SMBIOS_PORT_CONNECTOR_TYPE_ON_BOARD_FLOPPY         ((UCHAR)23)
+#define SMBIOS_PORT_CONNECTOR_TYPE_9_PIN_DIAL_INLINE       ((UCHAR)24)
+#define SMBIOS_PORT_CONNECTOR_TYPE_25_PIN_DIAL_INLINE      ((UCHAR)25)
+#define SMBIOS_PORT_CONNECTOR_TYPE_50_PIN_DIAL_INLINE      ((UCHAR)26)
+#define SMBIOS_PORT_CONNECTOR_TYPE_68_PIN_DIAL_INLINE      ((UCHAR)27)
+#define SMBIOS_PORT_CONNECTOR_TYPE_ON_BOARD_INPUT_CD_ROM   ((UCHAR)28)
+#define SMBIOS_PORT_CONNECTOR_TYPE_MINI_CENTRONICS_TYPE_14 ((UCHAR)29)
+#define SMBIOS_PORT_CONNECTOR_TYPE_MINI_CENTRONICS_TYPE_26 ((UCHAR)30)
+#define SMBIOS_PORT_CONNECTOR_TYPE_MINI_JACK               ((UCHAR)31)
+#define SMBIOS_PORT_CONNECTOR_TYPE_BNC                     ((UCHAR)32)
+#define SMBIOS_PORT_CONNECTOR_TYPE_1394                    ((UCHAR)33)
+#define SMBIOS_PORT_CONNECTOR_TYPE_SAS_SATA                ((UCHAR)34)
+#define SMBIOS_PORT_CONNECTOR_TYPE_USB_TYPE_C              ((UCHAR)35)
+#define SMBIOS_PORT_CONNECTOR_TYPE_PC_98                   ((UCHAR)160)
+#define SMBIOS_PORT_CONNECTOR_TYPE_PC_98_HIRESO            ((UCHAR)161)
+#define SMBIOS_PORT_CONNECTOR_TYPE_PC_H98                  ((UCHAR)162)
+#define SMBIOS_PORT_CONNECTOR_TYPE_PC_98_NOTE              ((UCHAR)163)
+#define SMBIOS_PORT_CONNECTOR_TYPE_PC_98_FULL              ((UCHAR)164)
+#define SMBIOS_PORT_CONNECTOR_TYPE_OTHER                   ((UCHAR)255)
+
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_NONE               ((UCHAR)0)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PARALLEL_XT_AT     ((UCHAR)1)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PARALLEL_PS2       ((UCHAR)2)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PARALLEL_ECP       ((UCHAR)3)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PARALLEL_EPP       ((UCHAR)4)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PARALLEL_ECP_EPP   ((UCHAR)5)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SERIAL_XT_AT       ((UCHAR)6)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SERIAL_16450       ((UCHAR)7)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SERIAL_16550       ((UCHAR)8)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SERIAL_16550A      ((UCHAR)9)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SCSI               ((UCHAR)10)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_MIDI               ((UCHAR)11)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_JOY_STICK          ((UCHAR)12)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_KEYBOARD           ((UCHAR)13)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_MOUSE              ((UCHAR)14)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SSA_SCSI           ((UCHAR)15)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_USB                ((UCHAR)16)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_FIRE_WIRE          ((UCHAR)17)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PCMCIA_TYPE_I      ((UCHAR)18)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PCMCIA_TYPE_II     ((UCHAR)19)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PCMCIA_TYPE_III    ((UCHAR)20)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_CARD_BUS           ((UCHAR)21)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_ACCESS_BUS         ((UCHAR)22)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SCSI_II            ((UCHAR)23)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SCSI_WIDE          ((UCHAR)24)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PC_98              ((UCHAR)25)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PC_98_HIRESO       ((UCHAR)26)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_PC_98H             ((UCHAR)27)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_VIDEO              ((UCHAR)28)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_AUDIO              ((UCHAR)29)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_MODEM              ((UCHAR)30)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_NETWORK            ((UCHAR)31)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SATA               ((UCHAR)32)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_SAS                ((UCHAR)33)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_MFDP               ((UCHAR)34)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_THUNDERBOLT        ((UCHAR)35)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_8251               ((UCHAR)160)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_8251_FIFO          ((UCHAR)161)
+#define SMBIOS_PORT_CONNECTOR_PORT_TYPE_8251_OTHER         ((UCHAR)255)
+
+//
+// System Slots (Type 9)
+//
+
+#define SMBIOS_SYSTEM_SLOT_INFORMATION_TYPE ((UCHAR)9)
+
+typedef struct _SMBIOS_SYSTEM_SLOT_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR SocketDesignation; // string
+    UCHAR Type;              // SMBIOS_SYSTEM_SLOT_TYPE_*
+    UCHAR BusWidth;          // SMBIOS_SYSTEM_SLOT_BUS_WIDTH_*
+    UCHAR CurrentUsage;      // SMBIOS_SYSTEM_SLOT_USAGE_*
+    UCHAR Length;            // SMBIOS_SYSTEM_SLOT_LENGTH_*
+    USHORT Identifier;
+    UCHAR Characteristics;   // SMBIOS_SYSTEM_SLOT_FLAG_*
+    // 2.1+
+    UCHAR Characteristics2;  // SMBIOS_SYSTEM_SLOT_FLAG_2_*
+    // 2.6+
+    USHORT SegmentGroup;
+    UCHAR BusNumber;
+
+    union
+    {
+        struct
+        {
+            UCHAR FunctionNumber : 3;
+            UCHAR DeviceNumber : 5;
+        };
+
+        UCHAR Value;
+    } DeviceFunctionNumber;
+
+    // 3.2+
+    UCHAR BusWidthBase;
+    UCHAR PeerGroupingCount;
+    UCHAR PeerGroups[ANYSIZE_ARRAY];
+    // 3.4+
+    // SMBIOS_SYSTEM_SLOT_INFORMATION_EX
+} SMBIOS_SYSTEM_SLOT_INFORMATION, *PSMBIOS_SYSTEM_SLOT_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_SLOT_INFORMATION) == 0x14);
+
+typedef struct _SMBIOS_SYSTEM_SLOT_INFORMATION_EX
+{
+    UCHAR Information;
+    UCHAR PhysicalWidth;
+    USHORT Pitch;
+    UCHAR Height;        // SMBIOS_SYSTEM_SLOT_HEIGHT_*
+} SMBIOS_SYSTEM_SLOT_INFORMATION_EX, *PSMBIOS_SYSTEM_SLOT_INFORMATION_EX;
+
+#define SMBIOS_SYSTEM_SLOT_TYPE_OTHER                                             ((UCHAR)1)
+#define SMBIOS_SYSTEM_SLOT_TYPE_UNKNOWN                                           ((UCHAR)2)
+#define SMBIOS_SYSTEM_SLOT_TYPE_ISA                                               ((UCHAR)3)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MCA                                               ((UCHAR)4)
+#define SMBIOS_SYSTEM_SLOT_TYPE_EISA                                              ((UCHAR)5)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI                                               ((UCHAR)6)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCMCIA                                            ((UCHAR)7)
+#define SMBIOS_SYSTEM_SLOT_TYPE_VL_VESA                                           ((UCHAR)8)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PROPRIETARY                                       ((UCHAR)9)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PROCESSOR_CARD_SLOT                               ((UCHAR)10)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PROPRIETARY_MEMORY_CARD_SLOT                      ((UCHAR)11)
+#define SMBIOS_SYSTEM_SLOT_TYPE_IO_RISER_CARD_SLOT                                ((UCHAR)12)
+#define SMBIOS_SYSTEM_SLOT_TYPE_NUBUS                                             ((UCHAR)13)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_66MHZ_CAPABLE                                 ((UCHAR)14)
+#define SMBIOS_SYSTEM_SLOT_TYPE_AGP                                               ((UCHAR)15)
+#define SMBIOS_SYSTEM_SLOT_TYPE_AGP_2X                                            ((UCHAR)16)
+#define SMBIOS_SYSTEM_SLOT_TYPE_AGP_4X                                            ((UCHAR)17)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_X                                             ((UCHAR)18)
+#define SMBIOS_SYSTEM_SLOT_TYPE_AGP_8X                                            ((UCHAR)19)
+#define SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_1_DP_MECHANICAL_KEY_A                  ((UCHAR)20)
+#define SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_1_SD_MECHANICAL_KEY_E                  ((UCHAR)21)
+#define SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_2_MECHANICAL_KEY_B                     ((UCHAR)22)
+#define SMBIOS_SYSTEM_SLOT_TYPE_M_2_SOCKET_3_MECHANICAL_KEY_M                     ((UCHAR)23)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_I                                        ((UCHAR)24)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_II                                       ((UCHAR)25)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_III_STANDARD_CONNECTOR                   ((UCHAR)26)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_III_HE_CONNECTOR                         ((UCHAR)27)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MXM_TYPE_IV                                       ((UCHAR)28)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MXM_3_0_TYPE_A                                    ((UCHAR)29)
+#define SMBIOS_SYSTEM_SLOT_TYPE_MXM_3_0_TYPE_B                                    ((UCHAR)30)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_SFF_8639_U_2                    ((UCHAR)31)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_SFF_8639_U_2                    ((UCHAR)32)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_MINI_52_PIN_CEM_2_0_WITH_KEEP_OUTS    ((UCHAR)33)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_MINI_52_PIN_CEM_2_0_WITHOUT_KEEP_OUTS ((UCHAR)34)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_MINI_76_PIN_CEM_2_0                   ((UCHAR)35)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_SFF_8639_U_2                    ((UCHAR)36)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_SFF_8639_U_2                    ((UCHAR)37)
+#define SMBIOS_SYSTEM_SLOT_TYPE_OCP_NIC_3_0_SMALL_FORM_FACTOR_SFF                 ((UCHAR)38)
+#define SMBIOS_SYSTEM_SLOT_TYPE_OCP_NIC_3_0_LARGE_FORM_FACTOR_LFF                 ((UCHAR)39)
+#define SMBIOS_SYSTEM_SLOT_TYPE_OCP_NIC_PRIOR_TO_3_0                              ((UCHAR)40)
+#define SMBIOS_SYSTEM_SLOT_TYPE_CXL_FLEXBUS_1_0                                   ((UCHAR)48)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PC_98_C20                                         ((UCHAR)160)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PC_98_C24                                         ((UCHAR)161)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PC_98_E                                           ((UCHAR)162)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PC_98_LOCAL_BUS                                   ((UCHAR)163)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PC_98_CARD                                        ((UCHAR)164)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS                                       ((UCHAR)165)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X1                                    ((UCHAR)166)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X2                                    ((UCHAR)167)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X4                                    ((UCHAR)168)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X8                                    ((UCHAR)169)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_X16                                   ((UCHAR)170)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2                                 ((UCHAR)171)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X1                              ((UCHAR)172)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X2                              ((UCHAR)173)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X4                              ((UCHAR)174)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X8                              ((UCHAR)175)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_2_X16                             ((UCHAR)176)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3                                 ((UCHAR)177)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X1                              ((UCHAR)178)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X2                              ((UCHAR)179)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X4                              ((UCHAR)180)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X8                              ((UCHAR)181)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_3_X16                             ((UCHAR)182)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4                                 ((UCHAR)183)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X1                              ((UCHAR)184)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X2                              ((UCHAR)185)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X4                              ((UCHAR)186)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X8                              ((UCHAR)187)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_4_X16                             ((UCHAR)188)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5                                 ((UCHAR)189)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X1                              ((UCHAR)190)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X2                              ((UCHAR)191)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X4                              ((UCHAR)192)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X8                              ((UCHAR)193)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_5_X16                             ((UCHAR)194)
+#define SMBIOS_SYSTEM_SLOT_TYPE_PCI_EXPRESS_GEN_6                                 ((UCHAR)195)
+#define SMBIOS_SYSTEM_SLOT_TYPE_EDSFF_E1_S_E1_L                                   ((UCHAR)196)
+#define SMBIOS_SYSTEM_SLOT_TYPE_EDSFF_E3_S_E3_L                                   ((UCHAR)197)
+
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_OTHER                                        ((UCHAR)1)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_UNKNOWN                                      ((UCHAR)2)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_8_BIT                                        ((UCHAR)3)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_16_BIT                                       ((UCHAR)4)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_32_BIT                                       ((UCHAR)5)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_64_BIT                                       ((UCHAR)6)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_128_BIT                                      ((UCHAR)7)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_1X_OR_1X                                     ((UCHAR)8)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_2X_OR_2X                                     ((UCHAR)9)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_4X_OR_4X                                     ((UCHAR)10)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_8X_OR_8X                                     ((UCHAR)11)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_12X_OR_12X                                   ((UCHAR)12)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_16X_OR_16X                                   ((UCHAR)13)
+#define SMBIOS_SYSTEM_SLOT_BUS_WIDTH_32X_OR_32X                                   ((UCHAR)14)
+
+#define SMBIOS_SYSTEM_SLOT_USAGE_OTHER                                            ((UCHAR)1)
+#define SMBIOS_SYSTEM_SLOT_USAGE_UNKNOWN                                          ((UCHAR)2)
+#define SMBIOS_SYSTEM_SLOT_USAGE_AVAILABLE                                        ((UCHAR)3)
+#define SMBIOS_SYSTEM_SLOT_USAGE_IN_USE                                           ((UCHAR)4)
+#define SMBIOS_SYSTEM_SLOT_USAGE_UNAVAILABLE                                      ((UCHAR)5)
+
+#define SMBIOS_SYSTEM_SLOT_LENGTH_OTHER                                           ((UCHAR)1)
+#define SMBIOS_SYSTEM_SLOT_LENGTH_UNKNOWN                                         ((UCHAR)2)
+#define SMBIOS_SYSTEM_SLOT_LENGTH_SHORT                                           ((UCHAR)3)
+#define SMBIOS_SYSTEM_SLOT_LENGTH_LONG                                            ((UCHAR)4)
+#define SMBIOS_SYSTEM_SLOT_LENGTH_2_5_DRIVE                                       ((UCHAR)5)
+#define SMBIOS_SYSTEM_SLOT_LENGTH_3_4_DRIVE                                       ((UCHAR)6)
+
+#define SMBIOS_SYSTEM_SLOT_FLAG_UNKNOWN                                           ((UCHAR)0x01)
+#define SMBIOS_SYSTEM_SLOT_FLAG_5000MV                                            ((UCHAR)0x02)
+#define SMBIOS_SYSTEM_SLOT_FLAG_3300MV                                            ((UCHAR)0x04)
+#define SMBIOS_SYSTEM_SLOT_FLAG_SHARED                                            ((UCHAR)0x08)
+#define SMBIOS_SYSTEM_SLOT_FLAG_CARD_16                                           ((UCHAR)0x10)
+#define SMBIOS_SYSTEM_SLOT_FLAG_CARD_BUS                                          ((UCHAR)0x20)
+#define SMBIOS_SYSTEM_SLOT_FLAG_CARD_ZOOM_VIDEO                                   ((UCHAR)0x40)
+#define SMBIOS_SYSTEM_SLOT_FLAG_CARD_MODEN_RING_RESUME                            ((UCHAR)0x80)
+
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_PME_SIGNAL                                      ((UCHAR)0x01)
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_HOT_PLUG                                        ((UCHAR)0x02)
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_SMBUS_SIGNAL                                    ((UCHAR)0x04)
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_PCIE_BIFURCATION                                ((UCHAR)0x08)
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_SURPRISE_REMOVAL                                ((UCHAR)0x10)
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_FLEXBUS_CLX_1                                   ((UCHAR)0x20)
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_FLEXBUS_CLX_2                                   ((UCHAR)0x40)
+#define SMBIOS_SYSTEM_SLOT_FLAG_2_FLEXBUS_CLX_4                                   ((UCHAR)0x80)
+
+#define SMBIOS_SYSTEM_SLOT_HEIGHT_NOT_APPLICABLE                                  ((UCHAR)0)
+#define SMBIOS_SYSTEM_SLOT_HEIGHT_OTHER                                           ((UCHAR)1)
+#define SMBIOS_SYSTEM_SLOT_HEIGHT_UNKNOWN                                         ((UCHAR)2)
+#define SMBIOS_SYSTEM_SLOT_HEIGHT_FULL_HEIGHT                                     ((UCHAR)3)
+#define SMBIOS_SYSTEM_SLOT_HEIGHT_LOW_PROFILE                                     ((UCHAR)4)
+
+//
+// On Board Devices Information (Type 10, Obsolete)
+//
+
+#define SMBIOS_ON_BOARD_DEVICE_INFORMATION_TYPE ((UCHAR)10)
+
+typedef struct _SMBIOS_ON_BOARD_DEVICE_ENTRY
+{
+    union
+    {
+        struct
+        {
+            UCHAR Type : 7; // SMBIOS_ON_BOARD_DEVICE_TYPE_*
+            UCHAR Enabled : 1;
+        };
+
+        UCHAR Value;
+    } Device;
+    UCHAR Description; // string
+} SMBIOS_ON_BOARD_DEVICE_ENTRY, *PSMBIOS_ON_BOARD_DEVICE_ENTRY;
+
+typedef struct _SMBIOS_ON_BOARD_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    SMBIOS_ON_BOARD_DEVICE_ENTRY Devices[ANYSIZE_ARRAY]; // (Header.Length - 4) / 2
+} SMBIOS_ON_BOARD_DEVICE_INFORMATION, *PSMBIOS_ON_BOARD_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_ON_BOARD_DEVICE_INFORMATION) == 0x6);
+
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_OTHER           ((UCHAR)1)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_UNKNOWN         ((UCHAR)2)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_VIDEO           ((UCHAR)3)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_SCSI_CONTROLLER ((UCHAR)4)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_ETHERNET        ((UCHAR)5)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_TOKEN_RING      ((UCHAR)6)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_SOUND           ((UCHAR)7)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_PATA_CONTROLLER ((UCHAR)8)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_SATA_CONTROLLER ((UCHAR)9)
+#define SMBIOS_ON_BOARD_DEVICE_TYPE_SAS_CONTROLLER  ((UCHAR)10)
+
+#define SMBIOS_OEM_STRING_INFORMATION_TYPE ((UCHAR)11)
+
+//
+// OEM Strings (Type 11)
+//
+
+typedef struct _SMBIOS_OEM_STRING_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    UCHAR Count;
+} SMBIOS_OEM_STRING_INFORMATION, *PSMBIOS_OEM_STRING_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_OEM_STRING_INFORMATION) == 0x5);
+
+//
+// System Configuration Options (Type 12)
+//
+
+#define SMBIOS_SYSTEM_CONFIGURATION_OPTION_INFORMATION_TYPE ((UCHAR)12)
+
+typedef struct _SMBIOS_SYSTEM_CONFIGURATION_OPTION_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    UCHAR Count;
+} SMBIOS_SYSTEM_CONFIGURATION_OPTION_INFORMATION, *PSMBIOS_SYSTEM_CONFIGURATION_OPTION_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_CONFIGURATION_OPTION_INFORMATION) == 0x5);
+
+//
+// Firmware Language Information (Type 13)
+//
+
+#define SMBIOS_FIRMWARE_LANGUAGE_INFORMATION_TYPE ((UCHAR)13)
+
+typedef struct _SMBIOS_FIRMWARE_LANGUAGE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    UCHAR InstallableLanguages;
+
+    union
+    {
+        struct
+        {
+            // 2.1+
+            UCHAR AbbreviatedFormat : 1;
+            UCHAR Reserved : 7;
+        };
+
+        UCHAR Value;
+    } Flags;
+
+    UCHAR Reserved[15];
+    UCHAR CurrentLanguage; // string
+} SMBIOS_FIRMWARE_LANGUAGE_INFORMATION, *PSMBIOS_FIRMWARE_LANGUAGE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_FIRMWARE_LANGUAGE_INFORMATION) == 0x16);
+
+//
+// Group Associations (Type 14)
+//
+
+#define SMBIOS_GROUP_ASSOCIATION_INFORMATION_TYPE ((UCHAR)14)
+
+typedef struct _SMBIOS_GROUP_ASSOCIATION_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    UCHAR Name;        // string
+    UCHAR ItemType;
+    USHORT ItemHandle;
+} SMBIOS_GROUP_ASSOCIATION_INFORMATION, *PSMBIOS_GROUP_ASSOCIATION_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_GROUP_ASSOCIATION_INFORMATION) == 0x8);
+
+//
+// System Event Log (Type 15)
+//
+
+#define SMBIOS_SYSTEM_EVENT_LOG_INFORMATION_TYPE ((UCHAR)15)
+
+typedef struct _SMBIOS_SYSTEM_EVENT_LOG_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.0+
+    USHORT AreaLength;
+    USHORT HeaderStartOffset;
+    USHORT DataStartOffset;
+    UCHAR AccessMethod;
+
+    union
+    {
+        struct
+        {
+            UCHAR Valid : 1;
+            UCHAR Full : 1;
+            UCHAR Reserved : 6;
+        };
+
+        UCHAR Value;
+    } Status;
+
+    ULONG ChangeToken;
+    ULONG AccessMethodAddress;
+    // 2.1+
+    UCHAR HeaderFormat;
+    UCHAR NumberOfDescriptors;
+    UCHAR LengthOfDescriptors;
+    UCHAR Descriptors[ANYSIZE_ARRAY];
+} SMBIOS_SYSTEM_EVENT_LOG_INFORMATION, *PSMBIOS_SYSTEM_EVENT_LOG_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_EVENT_LOG_INFORMATION) == 0x18);
+
+//
+// Physical Memory Array (Type 16)
+//
+
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_INFORMATION_TYPE ((UCHAR)16)
+
+typedef struct _SMBIOS_PHYSICAL_MEMORY_ARRAY_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.1+
+    UCHAR Location;        // SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_*
+    UCHAR Use;             // SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_*
+    UCHAR ErrorCorrection; // SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_*
+    ULONG MaximumCapacity;
+    USHORT ErrorInformationHandle;
+    USHORT NumberOfMemoryDevices;
+    // 2.7+
+    ULONGLONG ExtendedMaximumCapacity;
+} SMBIOS_PHYSICAL_MEMORY_ARRAY_INFORMATION, *PSMBIOS_PHYSICAL_MEMORY_ARRAY_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_PHYSICAL_MEMORY_ARRAY_INFORMATION) == 0x17);
+
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_OTHER                  ((UCHAR)1)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_UNKNOWN                ((UCHAR)2)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_MOTHERBOARD            ((UCHAR)3)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_ISA                    ((UCHAR)4)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_EISA                   ((UCHAR)5)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PCI                    ((UCHAR)6)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_MCA                    ((UCHAR)7)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PCMCIA                 ((UCHAR)8)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PROPRIETARY            ((UCHAR)9)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_NUBUS                  ((UCHAR)10)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_C20              ((UCHAR)160)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_C24              ((UCHAR)161)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_E                ((UCHAR)162)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_LOCAL_BUS        ((UCHAR)163)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_LOCATION_PC_98_CXL              ((UCHAR)164)
+
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_OTHER                       ((UCHAR)1)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_UNKNOWN                     ((UCHAR)2)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_SYSTEM                      ((UCHAR)3)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_VIDEO                       ((UCHAR)4)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_FLASH                       ((UCHAR)5)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_NON_VOLATILE                ((UCHAR)6)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_USE_CACHE                       ((UCHAR)7)
+
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_OTHER          ((UCHAR)1)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_UNKNOWN        ((UCHAR)2)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_NONE           ((UCHAR)3)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_PARITY         ((UCHAR)4)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_SINGLE_BIT_ECC ((UCHAR)5)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_MULTI_BIT_ECC  ((UCHAR)6)
+#define SMBIOS_PHYSICAL_MEMORY_ARRAY_ERROR_CORRECTION_CRC            ((UCHAR)7)
+
+//
+// Memory Device (Type 17)
+//
+
+#define SMBIOS_MEMORY_DEVICE_INFORMATION_TYPE ((UCHAR)17)
+
+typedef struct _SMBIOS_MEMORY_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.1+
+    USHORT PhysicalArrayHandle;
+    USHORT MemoryErrorInformationHandle;
+    USHORT TotalWidth;
+    USHORT DataWidth;
+
+    union
+    {
+        struct
+        {
+            USHORT Size : 15;
+            USHORT Granularity : 1; // 0 = megabytes, 1 = kilobytes
+        };
+
+        USHORT Value;
+    } Size;
+
+    UCHAR FormFactor;        // SMBIOS_MEMORY_DEVICE_FORM_FACTOR_*
+    UCHAR DeviceSet;
+    UCHAR DeviceLocator;     // string
+    UCHAR BankLocator;       // string
+    UCHAR MemoryType;        // SMBIOS_MEMORY_DEVICE_TYPE_*
+    USHORT TypeDetail;       // SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_*
+    USHORT Speed;
+    // 2.3+
+    UCHAR Manufacturer;      // string
+    UCHAR SerialNumber;      // string
+    UCHAR AssetTag;          // string
+    UCHAR PartNumber;        // string
+    // 2.6+
+
+    union
+    {
+        struct
+        {
+            UCHAR Rank : 4;
+            UCHAR Reserved : 4;
+        };
+
+        UCHAR Value;
+    } Attributes;
+
+    // 2.7+
+    ULONG ExtendedSize;
+    USHORT ConfiguredSpeed;
+    // 2.8+
+    USHORT MinimumVoltage;
+    USHORT MaximumVoltage;
+    USHORT ConfiguredVoltage;
+    // 3.2+
+    UCHAR Technology;        // SMBIOS_MEMORY_DEVICE_TECHNOLOGY_*
+    USHORT ModeCapabilities; // SMBIOS_MEMORY_DEVICE_MODE_*
+    UCHAR FirmwareVersion;   // string
+    USHORT ModuleManufacturerID;
+    USHORT ModuleProductID;
+    USHORT SubsystemControllerManufacturerID;
+    USHORT SubsystemControllerProductID;
+    ULONGLONG NonVolatileSize;
+    ULONGLONG VolatileSize;
+    ULONGLONG CacheSize;
+    ULONGLONG LogicalSize;
+    // 3.3+
+    ULONG ExtendedSpeed;
+    ULONG ExtendedConfiguredSpeed;
+    // 3.7+
+    USHORT PMIC0ManufacturerID;
+    USHORT PMIC0Revision;
+    USHORT RCDManufacturerID;
+    USHORT RCDRevision;
+} SMBIOS_MEMORY_DEVICE_INFORMATION, *PSMBIOS_MEMORY_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MEMORY_DEVICE_INFORMATION) == 0x64);
+
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_OTHER                ((UCHAR)1)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_UNKNOWN              ((UCHAR)2)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SIMM                 ((UCHAR)3)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SIP                  ((UCHAR)4)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_CHIP                 ((UCHAR)5)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_DIP                  ((UCHAR)6)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_ZIP                  ((UCHAR)7)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_PROPRIETARY          ((UCHAR)8)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_DIMM                 ((UCHAR)9)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_TSOP                 ((UCHAR)10)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_ROW_OF_CHIPS         ((UCHAR)11)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_RIMM                 ((UCHAR)12)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SODIMM               ((UCHAR)13)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_SRIMM                ((UCHAR)14)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_FB_DIMM              ((UCHAR)15)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_DIE                  ((UCHAR)16)
+#define SMBIOS_MEMORY_DEVICE_FORM_FACTOR_CAMM                 ((UCHAR)17)
+
+#define SMBIOS_MEMORY_DEVICE_TYPE_OTHER                       ((UCHAR)1)
+#define SMBIOS_MEMORY_DEVICE_TYPE_UNKNOWN                     ((UCHAR)2)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DRAM                        ((UCHAR)3)
+#define SMBIOS_MEMORY_DEVICE_TYPE_EDRAM                       ((UCHAR)4)
+#define SMBIOS_MEMORY_DEVICE_TYPE_VRAM                        ((UCHAR)5)
+#define SMBIOS_MEMORY_DEVICE_TYPE_SRAM                        ((UCHAR)6)
+#define SMBIOS_MEMORY_DEVICE_TYPE_RAM                         ((UCHAR)7)
+#define SMBIOS_MEMORY_DEVICE_TYPE_ROM                         ((UCHAR)8)
+#define SMBIOS_MEMORY_DEVICE_TYPE_FLASH                       ((UCHAR)9)
+#define SMBIOS_MEMORY_DEVICE_TYPE_EEPROM                      ((UCHAR)10)
+#define SMBIOS_MEMORY_DEVICE_TYPE_FEPROM                      ((UCHAR)11)
+#define SMBIOS_MEMORY_DEVICE_TYPE_EPROM                       ((UCHAR)12)
+#define SMBIOS_MEMORY_DEVICE_TYPE_CDRAM                       ((UCHAR)13)
+#define SMBIOS_MEMORY_DEVICE_TYPE_3DRAM                       ((UCHAR)14)
+#define SMBIOS_MEMORY_DEVICE_TYPE_SDRAM                       ((UCHAR)15)
+#define SMBIOS_MEMORY_DEVICE_TYPE_SGRAM                       ((UCHAR)16)
+#define SMBIOS_MEMORY_DEVICE_TYPE_RDRAM                       ((UCHAR)17)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DDR                         ((UCHAR)18)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DDR2                        ((UCHAR)19)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DDR2_FB_DIMM                ((UCHAR)20)
+// 21-23 reserved
+#define SMBIOS_MEMORY_DEVICE_TYPE_DDR3                        ((UCHAR)24)
+#define SMBIOS_MEMORY_DEVICE_TYPE_FBD2                        ((UCHAR)25)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DDR4                        ((UCHAR)26)
+#define SMBIOS_MEMORY_DEVICE_TYPE_LPDDR                       ((UCHAR)27)
+#define SMBIOS_MEMORY_DEVICE_TYPE_LPDDR2                      ((UCHAR)28)
+#define SMBIOS_MEMORY_DEVICE_TYPE_LPDDR3                      ((UCHAR)29)
+#define SMBIOS_MEMORY_DEVICE_TYPE_LPDDR4                      ((UCHAR)30)
+#define SMBIOS_MEMORY_DEVICE_TYPE_LOCAL_NON_VOLATILE          ((UCHAR)31)
+#define SMBIOS_MEMORY_DEVICE_TYPE_HBM                         ((UCHAR)32)
+#define SMBIOS_MEMORY_DEVICE_TYPE_HBM2                        ((UCHAR)33)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DDR5                        ((UCHAR)34)
+#define SMBIOS_MEMORY_DEVICE_TYPE_LPDDR5                      ((UCHAR)35)
+#define SMBIOS_MEMORY_DEVICE_TYPE_HBM3                        ((UCHAR)36)
+
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_RESERVED             ((USHORT)0x0001)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_OTHER                ((USHORT)0x0002)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_UNKNOWN              ((USHORT)0x0004)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_FAST_PAGED           ((USHORT)0x0008)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_STATIC_COL           ((USHORT)0x0010)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_PSEUDO_STATIC        ((USHORT)0x0020)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_RAMBUS               ((USHORT)0x0040)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_SYNCHRONOUS          ((USHORT)0x0080)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_CMOS                 ((USHORT)0x0100)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_EDO                  ((USHORT)0x0200)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_WINDOW_DRAM          ((USHORT)0x0400)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_CACHE_DRAM           ((USHORT)0x0800)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_NON_VOLATILE         ((USHORT)0x1000)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_BUFFERED             ((USHORT)0x2000)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_UNBUFFERED           ((USHORT)0x4000)
+#define SMBIOS_MEMORY_DEVICE_TYPE_DETAIL_LRDIMM               ((USHORT)0x8000)
+
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_OTHER                 ((UCHAR)1)
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_UNKNOWN               ((UCHAR)2)
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_DRAM                  ((UCHAR)3)
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_NVDIMM_N              ((UCHAR)4)
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_NVDIMM_F              ((UCHAR)5)
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_NVDIMM_P              ((UCHAR)6)
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_INTEL_OPTANE          ((UCHAR)7)
+#define SMBIOS_MEMORY_DEVICE_TECHNOLOGY_MRDIMM                ((UCHAR)8)
+
+#define SMBIOS_MEMORY_DEVICE_MODE_RESERVED                    ((USHORT)0x0001)
+#define SMBIOS_MEMORY_DEVICE_MODE_OTHER                       ((USHORT)0x0002)
+#define SMBIOS_MEMORY_DEVICE_MODE_UNKNOWN                     ((USHORT)0x0004)
+#define SMBIOS_MEMORY_DEVICE_MODE_VOLATILE                    ((USHORT)0x0008)
+#define SMBIOS_MEMORY_DEVICE_MODE_BYTE_ACCESSIBLE_PERSISTENT  ((USHORT)0x0010)
+#define SMBIOS_MEMORY_DEVICE_MODE_BLOCK_ACCESSIBLE_PERSISTENT ((USHORT)0x0020)
+#define SMBIOS_MEMORY_DEVICE_MODE_RESERVED2                   ((USHORT)0xFFC0)
+
+//
+// 32-Bit Memory Error Information (Type 18)
+//
+
+#define SMBIOS_32_BIT_MEMORY_ERROR_INFORMATION_TYPE ((UCHAR)18)
+
+typedef struct _SMBIOS_32_BIT_MEMORY_ERROR_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.1+
+    UCHAR Type;        // SMBIOS_MEMORY_ERROR_TYPE_*
+    UCHAR Granularity; // SMBIOS_MEMORY_ERROR_GRANULARITY_*
+    UCHAR Operation;   // SMBIOS_MEMORY_ERROR_OPERATION_*
+    ULONG VendorSyndrome;
+    ULONG ArrayErrorAddress;
+    ULONG DeviceErrorAddress;
+    ULONG ErrorResolution;
+} SMBIOS_32_BIT_MEMORY_ERROR_INFORMATION, *PSMBIOS_32_BIT_MEMORY_ERROR_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_32_BIT_MEMORY_ERROR_INFORMATION) == 0x17);
+
+//
+// Memory Array Mapped Address (Type 19)
+//
+
+#define SMBIOS_MEMORY_ARRAY_MAPPED_ADDRESS_INFORMATION_TYPE ((UCHAR)19)
+
+typedef struct _SMBIOS_MEMORY_ARRAY_MAPPED_ADDRESS_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.1+
+    ULONG StartingAddress;
+    ULONG EndingAddress;
+    USHORT ArrayHandle;
+    UCHAR PartitionWidth;
+    // 2.7+
+    ULONGLONG ExtendedStartingAddress;
+    ULONGLONG ExtendedEndingAddress;
+} SMBIOS_MEMORY_ARRAY_MAPPED_ADDRESS_INFORMATION, *PSMBIOS_MEMORY_ARRAY_MAPPED_ADDRESS_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MEMORY_ARRAY_MAPPED_ADDRESS_INFORMATION) == 0x1F);
+
+//
+// Memory Device Mapped Address (Type 20)
+//
+
+#define SMBIOS_MEMORY_DEVICE_MAPPED_ADDRESS_INFORMATION_TYPE ((UCHAR)20)
+
+typedef struct _SMBIOS_MEMORY_DEVICE_MAPPED_ADDRESS_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.1+
+    ULONG StartingAddress;
+    ULONG EndingAddress;
+    USHORT DeviceHandle;
+    USHORT ArrayMappedAddressHandle;
+    UCHAR PartitionRowPosition;
+    UCHAR InterleavePosition;
+    UCHAR InterleavedDataDepth;
+    // 2.7+
+    ULONGLONG ExtendedStartingAddress;
+    ULONGLONG ExtendedEndingAddress;
+} SMBIOS_MEMORY_DEVICE_MAPPED_ADDRESS_INFORMATION, *PSMBIOS_MEMORY_DEVICE_MAPPED_ADDRESS_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MEMORY_DEVICE_MAPPED_ADDRESS_INFORMATION) == 0x23);
+
+//
+// Built-in Pointing Device (Type 21)
+//
+
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INFORMATION_TYPE ((UCHAR)21)
+
+typedef struct _SMBIOS_BUILT_IN_POINTING_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.1+
+    UCHAR PointerType;      // SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_*
+    UCHAR PointerInterface; // SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_*
+    UCHAR PointerButtons;
+} SMBIOS_BUILT_IN_POINTING_DEVICE_INFORMATION, *PSMBIOS_BUILT_IN_POINTING_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_BUILT_IN_POINTING_DEVICE_INFORMATION) == 0x7);
+
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_OTHER          ((UCHAR)1)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_UNKNOWN        ((UCHAR)2)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_MOUSE          ((UCHAR)3)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TRACK_BALL     ((UCHAR)4)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TRACK_POINT    ((UCHAR)5)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_GLIDE_POINT    ((UCHAR)6)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TOUCH_PAD      ((UCHAR)7)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_TOUCH_SCREEN   ((UCHAR)8)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_TYPE_OPTICAL_SENSOR ((UCHAR)9)
+
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_OTHER     ((UCHAR)1)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_UNKNOWN   ((UCHAR)2)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_SERIAL    ((UCHAR)3)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_PS2       ((UCHAR)4)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_INFRARED  ((UCHAR)5)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_HP_HIL    ((UCHAR)6)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_BUS_MOUSE ((UCHAR)7)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_ADB       ((UCHAR)8)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_DB_9      ((UCHAR)160)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_MICRO_DIN ((UCHAR)161)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_USB       ((UCHAR)162)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_I2C       ((UCHAR)163)
+#define SMBIOS_BUILT_IN_POINTING_DEVICE_INTERFACE_SPI       ((UCHAR)164)
+
+//
+// Portable Battery (Type 22)
+//
+
+#define SMBIOS_PORTABLE_BATTERY_INFORMATION_TYPE ((UCHAR)22)
+
+typedef struct _SMBIOS_PORTABLE_BATTERY_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.1+
+    UCHAR Location;             // string
+    UCHAR Manufacturer;         // string
+    UCHAR ManufactureDate;      // string
+    UCHAR SerialNumber;         // string
+    UCHAR DeviceName;           // string
+    UCHAR DeviceChemistry;      // SMBIOS_PORTABLE_BATTERY_CHEMISTRY_*
+    USHORT DesignCapacity;
+    USHORT DesignVoltage;
+    UCHAR SBDSVersionNumber;    // string
+    UCHAR MaximumError;
+    // 2.2+
+    USHORT SBDSSerialNumber;
+
+    union
+    {
+        struct
+        {
+            USHORT Day : 5;
+            USHORT Month : 4;
+            USHORT Year : 7;  // Biased by 1980
+        };
+
+        USHORT Value;
+    } SBDSManufactureDate;
+
+    UCHAR SBDSDeviceChemistry;  // string
+    UCHAR DesignCapacityMultiplier;
+    ULONG OEMSpecific;
+} SMBIOS_PORTABLE_BATTERY_INFORMATION, *PSMBIOS_PORTABLE_BATTERY_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_PORTABLE_BATTERY_INFORMATION) == 0x1A);
+
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_OTHER           ((UCHAR)1)
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_UNKNOWN         ((UCHAR)2)
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_LEAD_ACID       ((UCHAR)3)
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_NICKEL_CADMIUM  ((UCHAR)4)
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_NICKEL_METAL    ((UCHAR)5)
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_LITHIUM_ION     ((UCHAR)6)
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_ZINC_AIR        ((UCHAR)7)
+#define SMBIO_PORTABLE_BATTERY_CHEMISTRY_LITHIUM_POLYMER ((UCHAR)8)
+
+//
+// System Reset (Type 23)
+//
+
+#define SMBIOS_SYSTEM_RESET_INFORMATION_TYPE ((UCHAR)23)
+
+typedef struct _SMBIOS_SYSTEM_RESET_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+
+    union
+    {
+        struct
+        {
+            UCHAR UserEnabled : 1;
+            UCHAR WatchdogReset : 2;   // SMBIOS_SYSTEM_RESET_WATCHDOG_*
+            UCHAR WatchdogAction : 2;  // SMBIOS_SYSTEM_RESET_WATCHDOG_*
+            UCHAR WatchdogExists : 1;
+            UCHAR Reserved : 2;
+        };
+
+        UCHAR Value;
+    } Capabilities;
+
+    USHORT ResetCount;
+    USHORT ResetLimit;
+    USHORT TimerInterval;
+    USHORT Timeout;
+} SMBIOS_SYSTEM_RESET_INFORMATION, *PSMBIOS_SYSTEM_RESET_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_RESET_INFORMATION) == 0xD);
+
+#define SMBIOS_SYSTEM_RESET_WATCHDOG_RESERVED         ((UCHAR)0)
+#define SMBIOS_SYSTEM_RESET_WATCHDOG_OPERATING_SYSTEM ((UCHAR)1)
+#define SMBIOS_SYSTEM_RESET_WATCHDOG_SYSTEM_UTILITES  ((UCHAR)2)
+#define SMBIOS_SYSTEM_RESET_WATCHDOG_DO_NOT_REBOOT    ((UCHAR)3)
+
+//
+// Hardware Security (Type 24)
+//
+
+#define SMBIOS_HARDWARE_SECURITY_INFORMATION_TYPE ((UCHAR)24)
+
+typedef struct _SMBIOS_HARDWARE_SECURITY_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+
+    union
+    {
+        struct
+        {
+            UCHAR FrontPanelReset : 2;       // SMBIOS_HARDWARE_SECURITY_SETTING_*
+            UCHAR AdministratorPassword : 2; // SMBIOS_HARDWARE_SECURITY_SETTING_*
+            UCHAR KeyboardPassword : 2;      // SMBIOS_HARDWARE_SECURITY_SETTING_*
+            UCHAR PowerOnPassword : 2;       // SMBIOS_HARDWARE_SECURITY_SETTING_*
+        };
+
+        UCHAR Value;
+    } HardwareSecuritySettings;
+} SMBIOS_HARDWARE_SECURITY_INFORMATION, *PSMBIOS_HARDWARE_SECURITY_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_HARDWARE_SECURITY_INFORMATION) == 0x5);
+
+#define SMBIOS_HARDWARE_SECURITY_SETTING_DISABLED        ((UCHAR)0)
+#define SMBIOS_HARDWARE_SECURITY_SETTING_ENABLED         ((UCHAR)1)
+#define SMBIOS_HARDWARE_SECURITY_SETTING_NOT_IMPLEMENTED ((UCHAR)2)
+#define SMBIOS_HARDWARE_SECURITY_SETTING_UNKNOWN         ((UCHAR)3)
+
+//
+// System Power Controls (Type 25)
+//
+
+#define SMBIOS_SYSTEM_POWER_CONTROLS_INFORMATION_TYPE ((UCHAR)25)
+
+typedef struct _SMBIOS_SYSTEM_POWER_CONTROLS_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+    UCHAR Month;
+    UCHAR Day;
+    UCHAR Hour;
+    UCHAR Minute;
+    UCHAR Second;
+} SMBIOS_SYSTEM_POWER_CONTROLS_INFORMATION, *PSMBIOS_SYSTEM_POWER_CONTROLS_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_POWER_CONTROLS_INFORMATION) == 0x9);
+
+//
+// Voltage Probe (Type 26)
+//
+
+#define SMBIOS_VOLTAGE_PROBE_INFORMATION_TYPE ((UCHAR)26)
+
+typedef struct _SMBIOS_VOLTAGE_PROBE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+    UCHAR Description; // string
+
+    union
+    {
+        struct
+        {
+            UCHAR Location : 5; // SMBIOS_VOLTAGE_PROBE_LOCATION_*
+            UCHAR Status : 3;   // SMBIOS_PROBE_STATUS_*
+        };
+
+        UCHAR Value;
+    } LocationAndStatus;
+
+    USHORT MaximumValue;
+    USHORT MinimumValue;
+    USHORT Resolution;
+    USHORT Tolerance;
+    USHORT Accuracy;
+    ULONG OEMDefined;
+    USHORT NominalValue;
+} SMBIOS_VOLTAGE_PROBE_INFORMATION, *PSMBIOS_VOLTAGE_PROBE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_VOLTAGE_PROBE_INFORMATION) == 0x16);
+
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_OTHER                    ((UCHAR)1)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_UNKNOWN                  ((UCHAR)2)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_PROCESSOR                ((UCHAR)3)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_DISK                     ((UCHAR)4)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_PERIPHERAL_BAY           ((UCHAR)5)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_SYSTEM_MANAGEMENT_MODULE ((UCHAR)6)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_MOTHERBOARD              ((UCHAR)7)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_MEMORY_MODULE            ((UCHAR)8)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_PROCESSOR_MODULE         ((UCHAR)9)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_POWER_UNIT               ((UCHAR)10)
+#define SMBIOS_VOLTAGE_PROBE_LOCATION_ADD_IN_CARD              ((UCHAR)11)
+
+//
+// Cooling Device (Type 27)
+//
+
+#define SMBIOS_COOLING_DEVICE_INFORMATION_TYPE ((UCHAR)27)
+
+typedef struct _SMBIOS_COOLING_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+    USHORT TemperatureProbeHandle;
+
+    union
+    {
+        struct
+        {
+            UCHAR DeviceType : 5; // SMBIOS_COOLING_DEVICE_TYPE_*
+            UCHAR Status : 3;     // SMBIOS_COOLING_DEVICE_STATUS_*
+        };
+
+        UCHAR Value;
+    } DeviceTypeAndStatus;
+
+    UCHAR CoolingUnitGroup;
+    ULONG OEMDefined;
+    USHORT NominalSpeed;
+    // 2.7+
+    UCHAR Description; // string
+} SMBIOS_COOLING_DEVICE_INFORMATION, *PSMBIOS_COOLING_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_COOLING_DEVICE_INFORMATION) == 0xF);
+
+#define SMBIOS_COOLING_DEVICE_TYPE_OTHER                    ((UCHAR)1)
+#define SMBIOS_COOLING_DEVICE_TYPE_UNKNOWN                  ((UCHAR)2)
+#define SMBIOS_COOLING_DEVICE_TYPE_FAN                      ((UCHAR)3)
+#define SMBIOS_COOLING_DEVICE_TYPE_CENTRIFUGAL_BLOWER       ((UCHAR)4)
+#define SMBIOS_COOLING_DEVICE_TYPE_CHIP_FAN                 ((UCHAR)5)
+#define SMBIOS_COOLING_DEVICE_TYPE_CABINET_FAN              ((UCHAR)6)
+#define SMBIOS_COOLING_DEVICE_TYPE_POWER_SUPPLY_FAN         ((UCHAR)7)
+#define SMBIOS_COOLING_DEVICE_TYPE_HEAT_PIPE                ((UCHAR)8)
+#define SMBIOS_COOLING_DEVICE_TYPE_INTEGRATED_REFRIGERATION ((UCHAR)9)
+#define SMBIOS_COOLING_DEVICE_TYPE_ACTIVE_COOLING           ((UCHAR)10)
+#define SMBIOS_COOLING_DEVICE_TYPE_PASSIVE_COOLING          ((UCHAR)11)
+
+#define SMBIOS_COOLING_DEVICE_STATUS_OTHER                  ((UCHAR)1)
+#define SMBIOS_COOLING_DEVICE_STATUS_UNKNOWN                ((UCHAR)2)
+#define SMBIOS_COOLING_DEVICE_STATUS_OK                     ((UCHAR)3)
+#define SMBIOS_COOLING_DEVICE_STATUS_NON_CRITICAL           ((UCHAR)4)
+#define SMBIOS_COOLING_DEVICE_STATUS_CRITICAL               ((UCHAR)5)
+#define SMBIOS_COOLING_DEVICE_STATUS_NON_RECOVERABLE        ((UCHAR)6)
+
+//
+// Temperature Probe (Type 28)
+//
+
+#define SMBIOS_TEMPERATURE_PROBE_INFORMATION_TYPE ((UCHAR)28)
+
+typedef struct _SMBIOS_TEMPERATURE_PROBE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+    UCHAR Description; // string
+
+    union
+    {
+        struct
+        {
+            UCHAR Location : 5; // SMBIOS_TEMPERATURE_PROBE_LOCATION_*
+            UCHAR Status : 3;   // SMBIOS_PROBE_STATUS_*
+        };
+
+        UCHAR Value;
+    } LocationAndStatus;
+
+    SHORT MaximumValue;
+    SHORT MinimumValue;
+    USHORT Resolution;
+    USHORT Tolerance;
+    USHORT Accuracy;
+    ULONG OEMDefined;
+    SHORT NominalValue;
+} SMBIOS_TEMPERATURE_PROBE_INFORMATION, *PSMBIOS_TEMPERATURE_PROBE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_TEMPERATURE_PROBE_INFORMATION) == 0x16);
+
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_OTHER                    ((UCHAR)1)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_UNKNOWN                  ((UCHAR)2)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_PROCESSOR                ((UCHAR)3)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_DISK                     ((UCHAR)4)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_PERIPHERAL_BAY           ((UCHAR)5)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_SYSTEM_MANAGEMENT_MODULE ((UCHAR)6)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_MOTHERBOARD              ((UCHAR)7)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_MEMORY_MODULE            ((UCHAR)8)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_PROCESSOR_MODULE         ((UCHAR)9)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_POWER_UNIT               ((UCHAR)10)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_ADD_IN_CARD              ((UCHAR)11)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_FRONT_PANEL_BOARD        ((UCHAR)12)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_BACK_PANEL_BOARD         ((UCHAR)13)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_POWER_SYSTEM_BOARD       ((UCHAR)14)
+#define SMBIOS_TEMPERATURE_PROBE_LOCATION_DRIVE_BACK_PLANE         ((UCHAR)15)
+
+//
+// Electrical Current Probe (Type 29)
+//
+
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_INFORMATION_TYPE ((UCHAR)29)
+
+typedef struct _SMBIOS_ELECTRICAL_CURRENT_PROBE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+    UCHAR Description; // string
+
+    union
+    {
+        struct
+        {
+            UCHAR Location : 5; // SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_*
+            UCHAR Status : 3;   // SMBIOS_PROBE_STATUS_*
+        };
+
+        UCHAR Value;
+    } LocationAndStatus;
+
+    USHORT MaximumValue;
+    USHORT MinimumValue;
+    USHORT Resolution;
+    USHORT Tolerance;
+    USHORT Accuracy;
+    ULONG OEMDefined;
+    USHORT NominalValue;
+} SMBIOS_ELECTRICAL_CURRENT_PROBE_INFORMATION, *PSMBIOS_ELECTRICAL_CURRENT_PROBE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_ELECTRICAL_CURRENT_PROBE_INFORMATION) == 0x16);
+
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_OTHER                    ((UCHAR)1)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_UNKNOWN                  ((UCHAR)2)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_PROCESSOR                ((UCHAR)3)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_DISK                     ((UCHAR)4)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_PERIPHERAL_BAY           ((UCHAR)5)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_SYSTEM_MANAGEMENT_MODULE ((UCHAR)6)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_MOTHERBOARD              ((UCHAR)7)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_MEMORY_MODULE            ((UCHAR)8)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_PROCESSOR_MODULE         ((UCHAR)9)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_POWER_UNIT               ((UCHAR)10)
+#define SMBIOS_ELECTRICAL_CURRENT_PROBE_LOCATION_ADD_IN_CARD              ((UCHAR)11)
+
+//
+// Out-of-Band Remote Access (Type 30)
+//
+
+#define SMBIOS_OUT_OF_BAND_REMOTE_ACCESS_INFORMATION_TYPE ((UCHAR)30)
+
+typedef struct _SMBIOS_OUT_OF_BAND_REMOTE_ACCESS_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.2+
+    UCHAR Manufacturer; // string
+
+    union
+    {
+        struct
+        {
+            UCHAR InboundEnabled : 1;
+            UCHAR OutboundEnabled : 1;
+            UCHAR Reserved : 6;
+        };
+
+        UCHAR Value;
+    } Connections;
+} SMBIOS_OUT_OF_BAND_REMOTE_ACCESS_INFORMATION, *PSMBIOS_OUT_OF_BAND_REMOTE_ACCESS_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_OUT_OF_BAND_REMOTE_ACCESS_INFORMATION) == 0x6);
+
+//
+// Boot Integrity Services (BIS) Entry Point (Type 31)
+//
+
+#define SMBIOS_BOOT_INTEGRITY_SERVICES_ENTRY_POINT ((UCHAR)31)
+
+//
+// Structure type 31 (decimal) is reserved for use by the Boot Integrity Services (BIS).
+// See the Boot Integrity Services API Specification for details.
+//
+
+//
+// System Boot Information (Type 32)
+//
+
+#define SMBIOS_SYSTEM_BOOT_INFORMATION_TYPE ((UCHAR)32)
+
+typedef struct _SMBIOS_SYSTEM_BOOT_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3+
+    UCHAR Reserved[6];
+    UCHAR BootStatus;  // SMBIOS_SYSTEM_BOOT_STATUS_*
+} SMBIOS_SYSTEM_BOOT_INFORMATION, *PSMBIOS_SYSTEM_BOOT_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_BOOT_INFORMATION) == 0xB);
+
+#define SMBIOS_SYSTEM_BOOT_STATUS_NO_ERROR                           ((UCHAR)0)
+#define SMBIOS_SYSTEM_BOOT_STATUS_NO_BOOTABLE_MEDIA                  ((UCHAR)1)
+#define SMBIOS_SYSTEM_BOOT_STATUS_OPERATING_SYSTEM_FAILED_TO_LOAD    ((UCHAR)2)
+#define SMBIOS_SYSTEM_BOOT_STATUS_FIRMWARE_DETECTED_HARDWARE_FAILURE ((UCHAR)3)
+#define SMBIOS_SYSTEM_BOOT_STATUS_OPERATING_SYSTEM_DETECTED_FAILURE  ((UCHAR)4)
+#define SMBIOS_SYSTEM_BOOT_STATUS_USER_REQUESTED_BOOT                ((UCHAR)5)
+#define SMBIOS_SYSTEM_BOOT_STATUS_SECURITY_VIOLATION                 ((UCHAR)6)
+#define SMBIOS_SYSTEM_BOOT_STATUS_PREVIOUS_REQUESTED_IMAGE           ((UCHAR)7)
+#define SMBIOS_SYSTEM_BOOT_STATUS_WATCHDOG_EXPIRED                   ((UCHAR)8)
+// 9-127 specification reserved
+// 128-191 OEM reserved
+// 192-255 product specific
+
+//
+// 64-Bit Memory Error Information (Type 33)
+//
+
+#define SMBIOS_64_BIT_MEMORY_ERROR_INFORMATION_TYPE ((UCHAR)33)
+
+typedef struct _SMBIOS_64_BIT_MEMORY_ERROR_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3+
+    UCHAR Type;        // SMBIOS_MEMORY_ERROR_TYPE_*
+    UCHAR Granularity; // SMBIOS_MEMORY_ERROR_GRANULARITY_*
+    UCHAR Operation;   // SMBIOS_MEMORY_ERROR_OPERATION_*
+    ULONG VendorSyndrome;
+    ULONGLONG ArrayErrorAddress;
+    ULONGLONG DeviceErrorAddress;
+    ULONG ErrorResolution;
+} SMBIOS_64_BIT_MEMORY_ERROR_INFORMATION, *PSMBIOS_64_BIT_MEMORY_ERROR_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_64_BIT_MEMORY_ERROR_INFORMATION) == 0x1F);
+
+//
+// Management Device (Type 34)
+//
+
+#define SMBIOS_MANAGEMENT_DEVICE_INFORMATION_TYPE ((UCHAR)34)
+
+typedef struct _SMBIOS_MANAGEMENT_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3+
+    UCHAR Description; // string
+    UCHAR DeviceType;  // SMBIOS_MANAGEMENT_DEVICE_TYPE_*
+    ULONG Address;
+    UCHAR AddressType; // SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_*
+} SMBIOS_MANAGEMENT_DEVICE_INFORMATION, *PSMBIOS_MANAGEMENT_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MANAGEMENT_DEVICE_INFORMATION) == 0xB);
+
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_OTHER           ((UCHAR)1)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_UNKNOWN         ((UCHAR)2)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_LM75            ((UCHAR)3)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_LM78            ((UCHAR)4)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_LM79            ((UCHAR)5)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_LM80            ((UCHAR)6)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_LM81            ((UCHAR)7)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_ADM9240         ((UCHAR)8)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_DS1780          ((UCHAR)9)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_1617            ((UCHAR)10)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_GL518SM         ((UCHAR)11)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_W83781D         ((UCHAR)12)
+#define SMBIOS_MANAGEMENT_DEVICE_TYPE_HT82H791        ((UCHAR)13)
+
+#define SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_OTHER   ((UCHAR)1)
+#define SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_UNKNOWN ((UCHAR)2)
+#define SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_IO_PORT ((UCHAR)3)
+#define SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_MEMORY  ((UCHAR)4)
+#define SMBIOS_MANAGEMENT_DEVICE_ADDRESS_TYPE_SMBUS   ((UCHAR)5)
+
+//
+// Management Device Component (Type 35)
+//
+
+#define SMBIOS_MANAGEMENT_DEVICE_COMPONENT_INFORMATION_TYPE ((UCHAR)35)
+
+typedef struct _SMBIOS_MANAGEMENT_DEVICE_COMPONENT_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3+
+    UCHAR Description; // string
+    USHORT ManagementDeviceHandle;
+    USHORT ComponentHandle;
+    USHORT ThresholdHandle;
+} SMBIOS_MANAGEMENT_DEVICE_COMPONENT_INFORMATION, *PSMBIOS_MANAGEMENT_DEVICE_COMPONENT_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MANAGEMENT_DEVICE_COMPONENT_INFORMATION) == 0xB);
+
+//
+// Management Device Threshold Data (Type 36)
+//
+
+#define SMBIOS_MANAGEMENT_DEVICE_THRESHOLD_INFORMATION_TYPE ((UCHAR)36)
+
+typedef struct _SMBIOS_MANAGEMENT_DEVICE_THRESHOLD_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3+
+    USHORT LowerThresholdNonCritical;
+    USHORT UpperThresholdNonCritical;
+    USHORT LowerThresholdCritical;
+    USHORT UpperThresholdCritical;
+    USHORT LowerThresholdNonRecoverable;
+    USHORT UpperThresholdNonRecoverable;
+} SMBIOS_MANAGEMENT_DEVICE_THRESHOLD_INFORMATION, *PSMBIOS_MANAGEMENT_DEVICE_THRESHOLD_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MANAGEMENT_DEVICE_THRESHOLD_INFORMATION) == 0x10);
+
+//
+// Memory Channel (Type 37)
+//
+
+#define SMBIOS_MEMORY_CHANNEL_INFORMATION_TYPE ((UCHAR)37)
+
+typedef struct _SMBIOS_MEMORY_CHANNEL_ENTRY
+{
+    UCHAR Load;
+    USHORT Handle;
+} SMBIOS_MEMORY_CHANNEL_ENTRY, *PSMBIOS_MEMORY_CHANNEL_ENTRY;
+
+typedef struct _SMBIOS_MEMORY_CHANNEL_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3+
+    UCHAR Type;         // SMBIOS_MEMORY_CHANNEL_TYPE_*
+    USHORT MaximumLoad;
+    UCHAR Count;
+    SMBIOS_MEMORY_CHANNEL_ENTRY Entries[ANYSIZE_ARRAY];
+} SMBIOS_MEMORY_CHANNEL_INFORMATION, *PSMBIOS_MEMORY_CHANNEL_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MEMORY_CHANNEL_INFORMATION) == 0xB);
+
+#define SMBIOS_MEMORY_CHANNEL_TYPE_OTHER     ((UCHAR)1)
+#define SMBIOS_MEMORY_CHANNEL_TYPE_UNKNOWN   ((UCHAR)2)
+#define SMBIOS_MEMORY_CHANNEL_TYPE_RAMBUS    ((UCHAR)3)
+#define SMBIOS_MEMORY_CHANNEL_TYPE_SYNC_LINK ((UCHAR)4)
+
+//
+// IPMI Device Information (Type 38)
+//
+
+#define SMBIOS_IPMI_DEVICE_INFORMATION_TYPE ((UCHAR)38)
+
+typedef struct _SMBIOS_IPMI_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3+
+    UCHAR Type; // SMBIOS_IPMI_INTERFACE_TYPE_*
+
+    union
+    {
+        struct
+        {
+            UCHAR Minor : 4;
+            UCHAR Major : 4;
+        };
+
+        UCHAR Value;
+    } SpecificationRevision;
+
+    UCHAR I2CTargetAddress;
+    UCHAR NVStorageDeviceAddress;
+    ULONGLONG BaseAddress;
+
+    union
+    {
+        struct
+        {
+            UCHAR InterruptTriggerMode : 1; // 1 = level, 0 = edge
+            UCHAR InterruptPolarity : 1;    // 1 = active high, 0 = active low
+            UCHAR Reserved : 1;
+            UCHAR InterruptInfo : 1;        // 1 = specified, 0 = not specified
+            UCHAR LSBAddress : 1;           // address bit 0 value
+            UCHAR Reserved2 : 1;
+            UCHAR RegisterSpacing : 2;      // SMBIOS_IPMI_REGISTER_SPACING_*
+        };
+
+        UCHAR Value;
+    } Info;
+
+    UCHAR InterruptNumber;
+} SMBIOS_IPMI_DEVICE_INFORMATION, *PSMBIOS_IPMI_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_IPMI_DEVICE_INFORMATION) == 0x12);
+
+#define SMBIOS_IPMI_INTERFACE_TYPE_UNKONWN      ((UCHAR)0)
+#define SMBIOS_IPMI_INTERFACE_TYPE_KCS          ((UCHAR)1)
+#define SMBIOS_IPMI_INTERFACE_TYPE_SMIC         ((UCHAR)2)
+#define SMBIOS_IPMI_INTERFACE_TYPE_BT           ((UCHAR)3)
+#define SMBIOS_IPMI_INTERFACE_TYPE_SSIF         ((UCHAR)4)
+
+#define SMBIOS_IPMI_REGISTER_SPACING_SUCCESSIVE ((UCHAR)0)
+#define SMBIOS_IPMI_REGISTER_SPACING_32_BIT     ((UCHAR)1)
+#define SMBIOS_IPMI_REGISTER_SPACING_16_BIT     ((UCHAR)2)
+#define SMBIOS_IPMI_REGISTER_SPACING_RESERVED   ((UCHAR)3)
+
+//
+// System Power Supply (Type 39)
+//
+
+#define SMBIOS_SYSTEM_POWER_SUPPLY_INFORMATION_TYPE ((UCHAR)39)
+
+typedef struct _SMBIOS_SYSTEM_POWER_SUPPLY_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.3.1+
+    UCHAR PowerUnitGroup;
+    UCHAR Location;          // string
+    UCHAR DeviceName;        // string
+    UCHAR Manufacturer;      // string
+    UCHAR SerialNumber;      // string
+    UCHAR AssetTag;          // string
+    UCHAR ModelPartNumber;   // string
+    UCHAR Revision;          // string
+    USHORT MaxPowerCapacity;
+
+    union
+    {
+        struct
+        {
+            USHORT HostSwappable : 1;
+            USHORT Present : 1;
+            USHORT Unplugged : 1;
+            USHORT RangeSwitching : 4; // SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_*
+            USHORT Status : 3;         // SMBIOS_POWER_SUPPLY_STATUS_*
+            USHORT Type : 4;           // SMBIOS_POWER_SUPPLY_TYPE_*
+            USHORT Reserved : 2;
+        };
+
+        USHORT Value;
+    } Characteristics;
+
+    USHORT InputVoltageProbeHandle;
+    USHORT CoolingDeviceHandle;
+    USHORT InputCurrentProbeHandle;
+} SMBIOS_SYSTEM_POWER_SUPPLY_INFORMATION, *PSMBIOS_SYSTEM_POWER_SUPPLY_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_SYSTEM_POWER_SUPPLY_INFORMATION) == 0x16);
+
+#define SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_OTHER          ((USHORT)1)
+#define SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_UNKNOWN        ((USHORT)2)
+#define SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_MANUAL         ((USHORT)3)
+#define SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_AUTO_SWITCH    ((USHORT)4)
+#define SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_WIDE_RANGE     ((USHORT)5)
+#define SMBIOS_POWER_SUPPLY_RANGE_SWITCHING_NOT_APPLICABLE ((USHORT)6)
+
+#define SMBIOS_POWER_SUPPLY_STATUS_OTHER                   ((USHORT)1)
+#define SMBIOS_POWER_SUPPLY_STATUS_UNKNOWN                 ((USHORT)2)
+#define SMBIOS_POWER_SUPPLY_STATUS_OK                      ((USHORT)3)
+#define SMBIOS_POWER_SUPPLY_STATUS_NON_CRITICAL            ((USHORT)4)
+#define SMBIOS_POWER_SUPPLY_STATUS_CRITICAL                ((USHORT)5)
+
+#define SMBIOS_POWER_SUPPLY_TYPE_OTHER                      ((USHORT)1)
+#define SMBIOS_POWER_SUPPLY_TYPE_UNKNOWN                    ((USHORT)2)
+#define SMBIOS_POWER_SUPPLY_TYPE_LINEAR                     ((USHORT)3)
+#define SMBIOS_POWER_SUPPLY_TYPE_SWITCHING                  ((USHORT)4)
+#define SMBIOS_POWER_SUPPLY_TYPE_BATTERY                    ((USHORT)5)
+#define SMBIOS_POWER_SUPPLY_TYPE_UPS                        ((USHORT)6)
+#define SMBIOS_POWER_SUPPLY_TYPE_CONVERTER                  ((USHORT)7)
+#define SMBIOS_POWER_SUPPLY_TYPE_REGULATOR                  ((USHORT)8)
+
+//
+// Additional Information (Type 40)
+//
+
+#define SMBIOS_ADDITIONAL_INFORMATION_TYPE ((UCHAR)40)
+
+typedef struct _SMBIOS_ADDITIONAL_ENTRY
+{
+    UCHAR Length;
+    USHORT ReferencedHandle;
+    UCHAR ReferencedOffset;
+    UCHAR String; // string
+    UCHAR Value[ANYSIZE_ARRAY];
+} SMBIOS_ADDITIONAL_ENTRY, *PSMBIOS_ADDITIONAL_ENTRY;
+
+typedef struct _SMBIOS_ADDITIONAL_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.6+
+    UCHAR Count;
+    SMBIOS_ADDITIONAL_ENTRY Entries[ANYSIZE_ARRAY];
+} SMBIOS_ADDITIONAL_INFORMATION, *PSMBIOS_ADDITIONAL_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_ADDITIONAL_INFORMATION) == 0xB);
+
+//
+// Onboard Devices Extended Information (Type 41)
+//
+
+#define SMBIOS_ONBOARD_DEVICE_INFORMATION_TYPE ((UCHAR)41)
+
+typedef struct _SMBIOS_ONBOARD_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.6+
+    UCHAR ReferenceDesignation; // string
+
+    union
+    {
+        struct
+        {
+            UCHAR Type : 7;     // SMBIOS_ONBOARD_DEVICE_TYPE_*
+            UCHAR Enabled : 1;
+        };
+
+        UCHAR Value;
+    } DeviceType;
+
+    UCHAR DeviceTypeInstance;
+    USHORT SegmentGroupNumber;
+    UCHAR BusNumber;
+
+    union
+    {
+        struct
+        {
+            UCHAR FunctionNumber : 3;
+            UCHAR DeviceNumber : 5;
+        };
+
+        UCHAR Value;
+    } DeviceFunctionNumber;
+
+} SMBIOS_ONBOARD_DEVICE_INFORMATION, *PSMBIOS_ONBOARD_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_ONBOARD_DEVICE_INFORMATION) == 0xB);
+
+#define SMBIOS_ONBOARD_DEVICE_TYPE_OTHER        ((UCHAR)1)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_UNKNOWN      ((UCHAR)2)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_VIDEO        ((UCHAR)3)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_SCSI         ((UCHAR)4)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_ETHERNET     ((UCHAR)5)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_TOKEN_RING   ((UCHAR)6)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_SOUND        ((UCHAR)7)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_PATA         ((UCHAR)8)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_SATA         ((UCHAR)9)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_SAS          ((UCHAR)10)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_WIRELESS_LAN ((UCHAR)11)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_BLUETOOTH    ((UCHAR)12)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_WWAN         ((UCHAR)13)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_EMMC         ((UCHAR)14)
+#define SMBIOS_ONBOARD_DEIVCE_TYPE_NVME         ((UCHAR)15)
+#define SMBIOS_ONBOARD_DEVICE_TYPE_UFS          ((UCHAR)16)
+
+//
+// Management Controller Host Interface (Type 42)
+//
+
+#define SMBIOS_MCHI_INFORMATION_TYPE ((UCHAR)42)
+
+typedef struct _SMBIOS_MCHI_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.6+
+    UCHAR Type;   // SMBIOS_MCHI_TYPE_*
+    UCHAR Length;
+    UCHAR Data[ANYSIZE_ARRAY];
+    // SMBIOS_MCHI_PROTOCOL_RECORDS
+} SMBIOS_MCHI_INFORMATION, *PSMBIOS_MCHI_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_MCHI_INFORMATION) == 0x7);
+
+typedef struct _SMBIOS_MCHI_PROTOCOL_RECORD
+{
+    UCHAR Type;   // SMBIOS_MCHI_PROTOCOL_TYPE_*
+    UCHAR Length;
+    UCHAR Data[ANYSIZE_ARRAY];
+} SMBIOS_MCHI_PROTOCOL_RECORD, *PSMBIOS_MCHI_PROTOCOL_RECORD;
+
+C_ASSERT(sizeof(SMBIOS_MCHI_PROTOCOL_RECORD) == 0x3);
+
+typedef struct _SMBIOS_MCHI_PROTOCOL_RECORDS
+{
+    UCHAR Count;
+    SMBIOS_MCHI_PROTOCOL_RECORD Records[ANYSIZE_ARRAY];
+} SMBIOS_MCHI_PROTOCOL_RECORDS, *PSMBIOS_MCHI_PROTOCOL_RECORDS;
+
+C_ASSERT(sizeof(SMBIOS_MCHI_PROTOCOL_RECORDS) == 0x4);
+
+// 0-63 MCTP host interfaces
+#define SMBIOS_MCHI_TYPE_NETWORK_INTERFACE ((UCHAR)64)
+#define SMBIOS_MCHI_TYPE_OEM_DEFINED       ((UCHAR)240)
+
+#define SMBIOS_MCHI_PROTOCOL_TYPE_RESERVED_0      ((UCHAR)0)
+#define SMBIOS_MCHI_PROTOCOL_TYPE_RESERVED_1      ((UCHAR)1)
+#define SMBIOS_MCHI_PROTOCOL_TYPE_IPMI            ((UCHAR)2)
+#define SMBIOS_MCHI_PROTOCOL_TYPE_MCTP            ((UCHAR)3)
+#define SMBIOS_MCHI_PROTOCOL_TYPE_REFRESH_OVER_IP ((UCHAR)4)
+#define SMBIOS_MCHI_PROTOCOL_TYPE_OEM_DEFINED     ((UCHAR)240)
+
+//
+// TPM Device (Type 43)
+//
+
+#define SMBIOS_TPM_DEVICE_INFORMATION_TYPE ((UCHAR)43)
+
+typedef struct _SMBIOS_TPM_DEVICE_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.6+
+    UCHAR VendorID[4];
+    UCHAR MajorSpecVersion;
+    UCHAR MinorSpecVersion;
+    ULONG FirmwareVersion1;
+    ULONG FirmwareVersion2;
+    UCHAR Description;         // string
+    ULONGLONG Characteristics; // SMBIOS_TPM_DEVICE_*
+    ULONG OEMDefined;
+} SMBIOS_TPM_DEVICE_INFORMATION, *PSMBIOS_TPM_DEVICE_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_TPM_DEVICE_INFORMATION) == 0x1F);
+
+#define SMBIOS_TPM_DEVICE_RESERVED_0                          0x0000000000000001ULL
+#define SMBIOS_TPM_DEVICE_RESERVED_1                          0x0000000000000002ULL
+#define SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_FIRMWARE_UPDATE    0x0000000000000004ULL
+#define SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_SOFTWARE_UPDATE    0x0000000000000008ULL
+#define SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_PROPRIETARY_UPDATE 0x0000000000000010ULL
+#define SMBIOS_TPM_DEIVCE_RESERVED                            0xFFFFFFFFFFFFFFE0ULL
+
+//
+// Processor Additional Information (Type 44)
+//
+
+#define SMBIOS_PROCESSOR_ADDITIONAL_INFORMATION_TYPE ((UCHAR)44)
+
+typedef struct _SMBIOS_PROCESSOR_SPECIFIC_BLOCK
+{
+    UCHAR Length;
+    UCHAR Type;   // SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_*
+    UCHAR Data[ANYSIZE_ARRAY];
+} SMBIOS_PROCESSOR_SPECIFIC_BLOCK, *PSMBIOS_PROCESSOR_SPECIFIC_BLOCK;
+
+C_ASSERT(sizeof(SMBIOS_PROCESSOR_SPECIFIC_BLOCK) == 0x3);
+
+typedef struct _SMBIOS_PROCESSOR_ADDITIONAL_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 2.6+
+    USHORT Handle;
+    SMBIOS_PROCESSOR_SPECIFIC_BLOCK Blocks[ANYSIZE_ARRAY];
+} SMBIOS_PROCESSOR_ADDITIONAL_INFORMATION, *PSMBIOS_PROCESSOR_ADDITIONAL_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_PROCESSOR_ADDITIONAL_INFORMATION) == 0x9);
+
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_X86         ((UCHAR)1)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_X64         ((UCHAR)2)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_IA64        ((UCHAR)3)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_ARM32       ((UCHAR)4)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_ARM64       ((UCHAR)5)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_RISCV32     ((UCHAR)6)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_RISCV64     ((UCHAR)7)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_RISCV128    ((UCHAR)8)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_LOONGARCH32 ((UCHAR)9)
+#define SMBIOS_PROCESSOR_ARCHITECTURE_TYPE_LOONGARCH64 ((UCHAR)10)
+
+//
+// Firmware Inventory Information (Type 45)
+//
+
+#define SMBIOS_FIRMWARE_INVENTORY_INFORMATION_TYPE ((UCHAR)45)
+
+typedef struct _SMBIOS_FIRMWARE_INVENTORY_INFORMATION
+{
+    SMBIOS_HEADER Header;
+    // 3.5+
+    UCHAR ComponentName;          // string
+    UCHAR Version;                // string
+    UCHAR VersionFormat;
+    UCHAR Identifier;             // string
+    UCHAR IdentifierFormat;
+    UCHAR ReleaseDate;            // string
+    UCHAR Manufacturer;           // string
+    UCHAR LowestSupportedVersion; // string
+    ULONGLONG ImageSize;
+    USHORT Characteristics;       // SMBIOS_FIRMWARE_INVENTORY_FLAG_*
+    UCHAR State;                  // SMBIOS_FIRMWARE_INVENTORY_STATE_*
+    UCHAR AssociatedComponents;
+    USHORT AssociatedComponentHandles[ANYSIZE_ARRAY];
+} SMBIOS_FIRMWARE_INVENTORY_INFORMATION, *PSMBIOS_FIRMWARE_INVENTORY_INFORMATION;
+
+C_ASSERT(sizeof(SMBIOS_FIRMWARE_INVENTORY_INFORMATION) == 0x1A);
+
+#define SMBIOS_FIRMWARE_INVENTORY_FLAG_UPDATABLE        0x00000001UL
+#define SMBIOS_FIRMWARE_INVENTORY_FLAG_WRITE_PROTECTED  0x00000002UL
+#define SMBIOS_FIRMWARE_INVENTORY_FLAG_RESERVED         0xFFFFFFFCUL
+
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_OTHER           ((UCHAR)1)
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_UNKNOWN         ((UCHAR)2)
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_DISABLED        ((UCHAR)3)
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_ENABLED         ((UCHAR)4)
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_ABSENT          ((UCHAR)5)
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_STANDBY_OFFLINE ((UCHAR)6)
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_STANDBY_SPARE   ((UCHAR)7)
+#define SMBIOS_FIRMWARE_INVENTORY_STATE_OFFLINE         ((UCHAR)8)
+
+//
+// String Property (Type 46)
+//
+
+#define SMBIOS_STRING_PROPERTY_TYPE ((UCHAR)46)
+
+typedef struct _SMBIOS_STRING_PROPERTY
+{
+    SMBIOS_HEADER Header;
+    // 3.5+
+    USHORT Identifier;   // SMBIOS_STRING_PROPERTY_ID_*
+    UCHAR String;        // string
+    USHORT ParentHandle;
+} SMBIOS_STRING_PROPERTY, *PSMBIOS_STRING_PROPERTY;
+
+C_ASSERT(sizeof(SMBIOS_STRING_PROPERTY) == 0x9);
+
+#define SMBIOS_STRING_PROPERTY_ID_RESERVED          ((UCHAR)1)
+#define SMBIOS_STRING_PROPERTY_ID_UEIF_DEVICE_PATH  ((UCHAR)2)
+
+//
+// Inactive (Type 126)
+//
+
+#define SMBIOS_INACTIVE_TYPE     ((UCHAR)126)
+
+typedef struct _SMBIOS_INACTIVE
+{
+    SMBIOS_HEADER Header;
+} SMBIOS_INACTIVE, *PSMBIOS_INACTIVE;
+
+C_ASSERT(sizeof(SMBIOS_INACTIVE) == 0x4);
+
+//
+// End-of-Table (Type 127)
+//
+
+#define SMBIOS_END_OF_TABLE_TYPE ((UCHAR)127)
+
+typedef struct _SMBIOS_END_OF_TABLE
+{
+    SMBIOS_HEADER Header;
+} SMBIOS_END_OF_TABLE, *PSMBIOS_END_OF_TABLE;
+
+C_ASSERT(sizeof(SMBIOS_END_OF_TABLE) == 0x4);
+
+#include <poppack.h>
+
+#endif  //  _SMBIOS_H
 
 /*
  * Subprocess tag information
@@ -57116,6 +61143,8 @@ WinStationEnumerateProcesses(
     _Out_ PVOID *Processes
     );
 
+#define WINSTATION_PROCESS_LEVEL 0
+
 // rev
 NTSYSAPI
 BOOLEAN
@@ -57342,6 +61371,9 @@ WinStationGetLoggedOnCount(
 #ifdef __cplusplus
 }
 #endif
+
+static_assert(__alignof(LARGE_INTEGER) == 8, "Windows headers require the default packing option. Changing the packing can lead to memory corruption.");
+static_assert(__alignof(PROCESS_CYCLE_TIME_INFORMATION) == 8, "PHNT headers require the default packing option. Changing the packing can lead to memory corruption.");
 
 #endif  // _PHNT_H
 
